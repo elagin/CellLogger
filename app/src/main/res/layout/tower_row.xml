@@ -35,6 +35,7 @@
         android:layout_height="wrap_content"
         android:paddingLeft="6dp"
         android:text="dbm:"
+        android:visibility="gone"
         app:layout_constraintLeft_toRightOf="@+id/lac" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

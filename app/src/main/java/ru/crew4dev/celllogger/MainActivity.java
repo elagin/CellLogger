@@ -13,30 +13,13 @@ import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
-import android.telephony.CellIdentityGsm;
-import android.telephony.CellIdentityLte;
-import android.telephony.CellInfo;
-import android.telephony.CellInfoGsm;
-import android.telephony.CellInfoLte;
-import android.telephony.CellSignalStrengthGsm;
-import android.telephony.CellSignalStrengthLte;
-import android.telephony.NeighboringCellInfo;
-import android.telephony.TelephonyManager;
-import android.util.Log;
 
-import org.json.JSONObject;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -44,38 +27,36 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import android.net.wifi.ScanResult;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import static ru.crew4dev.celllogger.MyService.dateFullFormat;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private static final String TAG = "MainActivity";
-    public static final SimpleDateFormat dateFullFormat = new SimpleDateFormat("dd.MM.yy HH:mm");
 
     final int REQUEST_CODE_PERMISSION_ACCESS_COARSE_LOCATION = 10;
 
     final Handler myHandler = new Handler();
 
     private RecyclerView taskRecyclerView;
+    private TextView textViewUpdateTime;
+
+    MyReceiver myReceiver;
+
     private HistoryAdapter adapter;
     private List<TowerInfo> towerList = new ArrayList<>();
-    private TowerInfo lastTower;
 
     WifiManager mainWifiObj;
     WifiScanReceiver wifiReciever;
-    ListView list;
+    //WifiLevelReceiver receiver;
     String wifis[];
 
     Boolean permissionRequested = false;
 
-    //private List<ScanInfo> scanInfos = new ArrayList<>();
-
-    class ScanInfo {
+    static class ScanInfo {
         List<TowerInfo> towerList = new ArrayList<>();
         Date date;
 
@@ -90,36 +71,70 @@ public class MainActivity extends AppCompatActivity {
 
     final Runnable myRunnable = new Runnable() {
         public void run() {
-            loadData();
+            //loadData();
         }
     };
+
+    @Override
+    protected void onStart() {
+        // TODO Auto-generated method stub
+
+        //Register BroadcastReceiver
+        //to receive event from our service
+        myReceiver = new MyReceiver();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(MyService.MY_ACTION);
+        registerReceiver(myReceiver, intentFilter);
+        super.onStart();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        unregisterReceiver(myReceiver);
+    }
+
+    private class MyReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context arg0, Intent intent) {
+            int lac = intent.getIntExtra(MyService.LAC, 0);
+            int cell_id = intent.getIntExtra(MyService.CELL_ID, 0);
+            TowerInfo tower = new TowerInfo(cell_id, lac, 0, 0, 0);
+            towerList.add(tower);
+            adapter.setItems(towerList);
+            adapter.notifyDataSetChanged();
+            textViewUpdateTime.setText(dateFullFormat.format(new Date()));
+            Toast.makeText(MainActivity.this, "Triggered by Service!", Toast.LENGTH_LONG).show();
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        list = findViewById(R.id.list);
+        checkPermissions();
+
 //        mainWifiObj = (WifiManager) getSystemService(Context.WIFI_SERVICE);
 //        wifiReciever = new WifiScanReceiver();
 //        mainWifiObj.startScan();
         // listening to single list item on click
-        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                // selected item
-                String ssid = ((TextView) view).getText().toString();
-                //connectToWifi(ssid);
-                Toast.makeText(MainActivity.this, "Wifi SSID : " + ssid, Toast.LENGTH_SHORT).show();
-
-            }
-        });
+//        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+//            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+//                // selected item
+//                String ssid = ((TextView) view).getText().toString();
+//                //connectToWifi(ssid);
+//                Toast.makeText(MainActivity.this, "Wifi SSID : " + ssid, Toast.LENGTH_SHORT).show();
+//
+//            }
+//        });
 
         taskRecyclerView = findViewById(R.id.historyRecyclerView);
         adapter = new HistoryAdapter();
         taskRecyclerView.setAdapter(adapter);
         taskRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        loadData();
+        textViewUpdateTime = findViewById(R.id.textViewUpdateTime);
 
         Timer myTimer = new Timer();
         myTimer.schedule(new TimerTask() {
@@ -130,43 +145,15 @@ public class MainActivity extends AppCompatActivity {
         }, 0, 10000);
     }
 
-    private void loadData() {
-        long st, en;
-        st = System.nanoTime();
-        if (adapter.getItemCount() > 0)
-            adapter.clearItems();
-
-        ScanInfo scanInfo = check();
-        if (scanInfo != null && scanInfo.towerList != null) {
-            towerList.addAll(scanInfo.towerList);
-            saveLine(scanInfo);
-            adapter.setItems(towerList);
-            adapter.notifyDataSetChanged();
-        }
-    }
-
-    private void saveLine(ScanInfo scanInfo) {
-        for (TowerInfo towerInfo : scanInfo.towerList) {
-            StringBuilder out = new StringBuilder();
-            out.append(dateFullFormat.format(towerInfo.getDate()));
-            out.append(";");
-            out.append(towerInfo.getTac());
-            out.append(";");
-            out.append(towerInfo.getCellId());
-            out.append("\n");
-            writeToFile(out.toString());
-        }
-    }
-
-    private ScanInfo check() {
+    private void checkPermissions() {
         if ((ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) ||
                 (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) ||
                 (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)) {
-            return getCellInfo(this);
+            //Start our own service
+            startService(new Intent(MainActivity.this, MyService.class));
         } else {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_PHONE_STATE, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_PERMISSION_ACCESS_COARSE_LOCATION);
         }
-        return null;
     }
 
     @Override
@@ -174,7 +161,7 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case REQUEST_CODE_PERMISSION_ACCESS_COARSE_LOCATION:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    getCellInfo(this);
+                    startService(new Intent(MainActivity.this, MyService.class));
                 } else {
                     // permission denied
                 }
@@ -188,69 +175,6 @@ public class MainActivity extends AppCompatActivity {
         String name = wifiInfo.getSSID();
     }
 
-    public ScanInfo getCellInfo(Context ctx) {
-        ScanInfo scanInfo = new ScanInfo();
-        TelephonyManager tel = (TelephonyManager) ctx.getSystemService(Context.TELEPHONY_SERVICE);
-        //JSONArray cellList = new JSONArray();
-// Type of the network
-        int phoneTypeInt = tel.getPhoneType();
-        String phoneType = null;
-        phoneType = phoneTypeInt == TelephonyManager.PHONE_TYPE_GSM ? "gsm" : phoneType;
-//        phoneType = phoneTypeInt == TelephonyManager.PHONE_TYPE_CDMA ? "cdma" : phoneType;
-
-        //from Android M up must use getAllCellInfo
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            List<NeighboringCellInfo> neighCells = tel.getNeighboringCellInfo();
-            for (int i = 0; i < neighCells.size(); i++) {
-                try {
-                    JSONObject cellObj = new JSONObject();
-                    NeighboringCellInfo thisCell = neighCells.get(i);
-                    cellObj.put("cellId", thisCell.getCid());
-                    cellObj.put("lac", thisCell.getLac());
-                    cellObj.put("rssi", thisCell.getRssi());
-                    //cellList.put(cellObj);
-                } catch (Exception e) {
-                }
-            }
-
-        } else {
-            List<CellInfo> infos = tel.getAllCellInfo();
-            if (infos != null) {
-                for (int i = 0; i < infos.size(); ++i) {
-                    try {
-                        CellInfo info = infos.get(i);
-                        if (info instanceof CellInfoGsm) {
-                            CellSignalStrengthGsm gsm = ((CellInfoGsm) info).getCellSignalStrength();
-                            CellIdentityGsm identityGsm = ((CellInfoGsm) info).getCellIdentity();
-                            if (identityGsm.getCid() != Integer.MAX_VALUE && identityGsm.getLac() != Integer.MAX_VALUE) {
-                                TowerInfo tower = new TowerInfo(identityGsm.getCid(), identityGsm.getLac(), gsm.getDbm(), identityGsm.getMcc(), identityGsm.getMnc());
-                                lastTower = tower;
-                                scanInfo.towerList.add(tower);
-                                Log.d(TAG, new Date() + " \t" + tower.toString());
-                            }
-                        } else if (info instanceof CellInfoLte) {
-                            CellSignalStrengthLte lte = ((CellInfoLte) info).getCellSignalStrength();
-                            CellIdentityLte identityLte = ((CellInfoLte) info).getCellIdentity();
-                            if (identityLte.getCi() != Integer.MAX_VALUE && identityLte.getTac() != Integer.MAX_VALUE) {
-                                Log.d(TAG, new Date() + " \t" + identityLte.getTac() + " \t" + identityLte.getCi());
-                                if (lastTower == null || lastTower.getTac() != identityLte.getTac() || lastTower.getCellId() != identityLte.getCi()) {
-                                    TowerInfo tower = new TowerInfo(identityLte.getCi(), identityLte.getTac(), lte.getDbm(), identityLte.getMcc(), identityLte.getMnc());
-                                    lastTower = tower;
-                                    scanInfo.towerList.add(tower);
-                                }
-                            }
-                        }
-                    } catch (Exception ex) {
-                        Log.d(TAG, new Date() + " \t" + ex.getLocalizedMessage());
-                    }
-                }
-                //scanInfos.add(scanInfo);
-            } else {
-                Log.d(TAG, new Date() + " \t" + "getAllCellInfo return null");
-            }
-            //Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + context.getApplicationInfo().processName;
-        }
-
 //        final SubscriptionManager subscriptionManager = SubscriptionManager.from(this);
 //        final List<SubscriptionInfo> activeSubscriptionInfoList = subscriptionManager.getActiveSubscriptionInfoList();
 //        for (SubscriptionInfo subscriptionInfo : activeSubscriptionInfoList) {
@@ -260,8 +184,6 @@ public class MainActivity extends AppCompatActivity {
 //            final int mnc = subscriptionInfo.getMnc();
 //            final String subscriptionInfoNumber = subscriptionInfo.getNumber();
 //        }
-        return scanInfo;
-    }
 
     protected void onPause() {
 //        unregisterReceiver(wifiReciever);
@@ -288,33 +210,7 @@ public class MainActivity extends AppCompatActivity {
                 filtered[counter] = temp[0].substring(5).trim();//+"\n" + temp[2].substring(12).trim()+"\n" +temp[3].substring(6).trim();//0->SSID, 2->Key Management 3-> Strength
                 counter++;
             }
-            list.setAdapter(new ArrayAdapter<String>(getApplicationContext(), R.layout.list_item, R.id.label, filtered));
-        }
-    }
-
-    /* Checks if external storage is available for read and write */
-    public boolean isExternalStorageWritable() {
-        String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            return true;
-        }
-        return false;
-    }
-
-    private void writeToFile(String data) {
-        if (isExternalStorageWritable()) {
-            try {
-                String path = Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + getApplicationInfo().processName;
-                File dir = new File(path);
-                if (!dir.exists())
-                    dir.mkdir();
-                File file = new File(path, "log.txt");
-                FileOutputStream outputStream = new FileOutputStream(file, true);
-                outputStream.write(data.getBytes());
-                outputStream.close();
-            } catch (IOException e) {
-                Log.e("Exception", "File write failed: " + e.toString());
-            }
+            //list.setAdapter(new ArrayAdapter<String>(getApplicationContext(), R.layout.list_item, R.id.label, filtered));
         }
     }
 }

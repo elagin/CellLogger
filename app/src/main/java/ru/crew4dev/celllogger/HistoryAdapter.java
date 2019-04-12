@@ -1,6 +1,5 @@
 package ru.crew4dev.celllogger;
 
-import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -65,7 +64,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.TowerInf
         }
 
         void bind(TowerInfo item) {
-            SimpleDateFormat sdf = new SimpleDateFormat("hh:mm-dd.MM", Locale.getDefault());
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm-dd.MM", Locale.getDefault());
             date.setText(sdf.format(item.getDate()));
             cellId.setText("cellId: " + String.valueOf(item.getCellId()));
             lac.setText("lac: " + String.valueOf(item.getTac()));
