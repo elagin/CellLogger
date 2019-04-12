@@ -13,12 +13,12 @@ import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.telephony.CellIdentityGsm;
 import android.telephony.CellIdentityLte;
@@ -33,6 +33,10 @@ import android.util.Log;
 
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -51,8 +55,10 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
     private static final String TAG = "MainActivity";
+    public static final SimpleDateFormat dateFullFormat = new SimpleDateFormat("dd.MM.yy HH:mm");
 
     final int REQUEST_CODE_PERMISSION_ACCESS_COARSE_LOCATION = 10;
+
     final Handler myHandler = new Handler();
 
     private RecyclerView taskRecyclerView;
@@ -131,20 +137,34 @@ public class MainActivity extends AppCompatActivity {
             adapter.clearItems();
 
         ScanInfo scanInfo = check();
-        towerList.addAll(scanInfo.towerList);
-        //adapter.setItems(scanInfo.towerList);
-        adapter.setItems(towerList);
-        adapter.notifyDataSetChanged();
+        if (scanInfo != null && scanInfo.towerList != null) {
+            towerList.addAll(scanInfo.towerList);
+            saveLine(scanInfo);
+            adapter.setItems(towerList);
+            adapter.notifyDataSetChanged();
+        }
+    }
+
+    private void saveLine(ScanInfo scanInfo) {
+        for (TowerInfo towerInfo : scanInfo.towerList) {
+            StringBuilder out = new StringBuilder();
+            out.append(dateFullFormat.format(towerInfo.getDate()));
+            out.append(";");
+            out.append(towerInfo.getTac());
+            out.append(";");
+            out.append(towerInfo.getCellId());
+            out.append("\n");
+            writeToFile(out.toString());
+        }
     }
 
     private ScanInfo check() {
-        int permissionStatus = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
-        permissionStatus = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE);
-        if (permissionStatus == PackageManager.PERMISSION_GRANTED) {
-            //getWifi();
+        if ((ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) ||
+                (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) ||
+                (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)) {
             return getCellInfo(this);
         } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_PHONE_STATE}, REQUEST_CODE_PERMISSION_ACCESS_COARSE_LOCATION);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_PHONE_STATE, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_PERMISSION_ACCESS_COARSE_LOCATION);
         }
         return null;
     }
@@ -154,7 +174,6 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case REQUEST_CODE_PERMISSION_ACCESS_COARSE_LOCATION:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    //getWifi();
                     getCellInfo(this);
                 } else {
                     // permission denied
@@ -270,6 +289,32 @@ public class MainActivity extends AppCompatActivity {
                 counter++;
             }
             list.setAdapter(new ArrayAdapter<String>(getApplicationContext(), R.layout.list_item, R.id.label, filtered));
+        }
+    }
+
+    /* Checks if external storage is available for read and write */
+    public boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
+    private void writeToFile(String data) {
+        if (isExternalStorageWritable()) {
+            try {
+                String path = Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + getApplicationInfo().processName;
+                File dir = new File(path);
+                if (!dir.exists())
+                    dir.mkdir();
+                File file = new File(path, "log.txt");
+                FileOutputStream outputStream = new FileOutputStream(file, true);
+                outputStream.write(data.getBytes());
+                outputStream.close();
+            } catch (IOException e) {
+                Log.e("Exception", "File write failed: " + e.toString());
+            }
         }
     }
 }
