@@ -9,8 +9,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import ru.crew4dev.celllogger.data.TowerInfo;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -33,6 +39,14 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import android.net.wifi.ScanResult;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
@@ -43,13 +57,17 @@ public class MainActivity extends AppCompatActivity {
 
     private RecyclerView taskRecyclerView;
     private HistoryAdapter adapter;
+    private List<TowerInfo> towerList = new ArrayList<>();
+    private TowerInfo lastTower;
 
-    private static TowerInfo lastTower;
+    WifiManager mainWifiObj;
+    WifiScanReceiver wifiReciever;
+    ListView list;
+    String wifis[];
 
     Boolean permissionRequested = false;
 
     //private List<ScanInfo> scanInfos = new ArrayList<>();
-    int i = 0;
 
     class ScanInfo {
         List<TowerInfo> towerList = new ArrayList<>();
@@ -60,21 +78,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void UpdateGUI() {
-        check();
-        i++;
-        //tv.setText(String.valueOf(i));
+    private void updateGUI() {
         myHandler.post(myRunnable);
     }
 
     final Runnable myRunnable = new Runnable() {
         public void run() {
-            if (lastTower != null) {
-                loadData();
-//                cellId.setText(String.valueOf(lastTower.getCellId()));
-//                lac.setText(String.valueOf(lastTower.getTac()));
-//                dbm.setText(String.valueOf(lastTower.getDbm()));
-            }
+            loadData();
         }
     };
 
@@ -83,21 +93,33 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        list = findViewById(R.id.list);
+//        mainWifiObj = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+//        wifiReciever = new WifiScanReceiver();
+//        mainWifiObj.startScan();
+        // listening to single list item on click
+        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // selected item
+                String ssid = ((TextView) view).getText().toString();
+                //connectToWifi(ssid);
+                Toast.makeText(MainActivity.this, "Wifi SSID : " + ssid, Toast.LENGTH_SHORT).show();
+
+            }
+        });
+
         taskRecyclerView = findViewById(R.id.historyRecyclerView);
-        adapter = new HistoryAdapter(this);
+        adapter = new HistoryAdapter();
         taskRecyclerView.setAdapter(adapter);
         taskRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-//        cellId = findViewById(R.id.cellId);
-//        lac = findViewById(R.id.lac);
-//        dbm = findViewById(R.id.dbm);
         loadData();
 
         Timer myTimer = new Timer();
         myTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                UpdateGUI();
+                updateGUI();
             }
         }, 0, 10000);
     }
@@ -109,16 +131,17 @@ public class MainActivity extends AppCompatActivity {
             adapter.clearItems();
 
         ScanInfo scanInfo = check();
-        //ScanInfo scanInfo = getCellInfo(this);
-        adapter.setItems(scanInfo.towerList);
+        towerList.addAll(scanInfo.towerList);
+        //adapter.setItems(scanInfo.towerList);
+        adapter.setItems(towerList);
         adapter.notifyDataSetChanged();
     }
 
     private ScanInfo check() {
         int permissionStatus = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION);
         permissionStatus = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE);
-
         if (permissionStatus == PackageManager.PERMISSION_GRANTED) {
+            //getWifi();
             return getCellInfo(this);
         } else {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_PHONE_STATE}, REQUEST_CODE_PERMISSION_ACCESS_COARSE_LOCATION);
@@ -131,12 +154,19 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case REQUEST_CODE_PERMISSION_ACCESS_COARSE_LOCATION:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    //getWifi();
                     getCellInfo(this);
                 } else {
                     // permission denied
                 }
                 return;
         }
+    }
+
+    private void getWifi() {
+        WifiManager wifiMgr = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
+        String name = wifiInfo.getSSID();
     }
 
     public ScanInfo getCellInfo(Context ctx) {
@@ -167,39 +197,29 @@ public class MainActivity extends AppCompatActivity {
         } else {
             List<CellInfo> infos = tel.getAllCellInfo();
             if (infos != null) {
-                //ScanInfo scanInfo = new ScanInfo();
                 for (int i = 0; i < infos.size(); ++i) {
                     try {
-                        JSONObject cellObj = new JSONObject();
                         CellInfo info = infos.get(i);
                         if (info instanceof CellInfoGsm) {
                             CellSignalStrengthGsm gsm = ((CellInfoGsm) info).getCellSignalStrength();
                             CellIdentityGsm identityGsm = ((CellInfoGsm) info).getCellIdentity();
-                            cellObj.put("cellId", identityGsm.getCid());
-//                        cellObj.put("lac", identityGsm.getLac());
-//                        cellObj.put("dbm", gsm.getDbm());
-                            TowerInfo tower = new TowerInfo(identityGsm.getCid(), identityGsm.getLac(), gsm.getDbm());
-                            lastTower = tower;
-//                            cellId.setText(tower.getCellId());
-//                            lac.setText(tower.getTac());
-//                            dbm.setText(tower.getDbm());
-                            scanInfo.towerList.add(tower);
-                            Log.d(TAG, new Date() + " \t" + tower.toString());
-                            //cellList.put(cellObj);
+                            if (identityGsm.getCid() != Integer.MAX_VALUE && identityGsm.getLac() != Integer.MAX_VALUE) {
+                                TowerInfo tower = new TowerInfo(identityGsm.getCid(), identityGsm.getLac(), gsm.getDbm(), identityGsm.getMcc(), identityGsm.getMnc());
+                                lastTower = tower;
+                                scanInfo.towerList.add(tower);
+                                Log.d(TAG, new Date() + " \t" + tower.toString());
+                            }
                         } else if (info instanceof CellInfoLte) {
                             CellSignalStrengthLte lte = ((CellInfoLte) info).getCellSignalStrength();
                             CellIdentityLte identityLte = ((CellInfoLte) info).getCellIdentity();
-//                        cellObj.put("cellId", identityLte.getCi());
-//                        cellObj.put("tac", identityLte.getTac());
-//                        cellObj.put("dbm", lte.getDbm());
-                            TowerInfo tower = new TowerInfo(identityLte.getCi(), identityLte.getTac(), lte.getDbm());
-                            lastTower = tower;
-//                            cellId.setText(tower.getCellId());
-//                            lac.setText(tower.getTac());
-//                            dbm.setText(tower.getDbm());
-                            Log.d(TAG, new Date() + " \t" + tower.toString());
-                            scanInfo.towerList.add(tower);
-                            //cellList.put(cellObj);
+                            if (identityLte.getCi() != Integer.MAX_VALUE && identityLte.getTac() != Integer.MAX_VALUE) {
+                                Log.d(TAG, new Date() + " \t" + identityLte.getTac() + " \t" + identityLte.getCi());
+                                if (lastTower == null || lastTower.getTac() != identityLte.getTac() || lastTower.getCellId() != identityLte.getCi()) {
+                                    TowerInfo tower = new TowerInfo(identityLte.getCi(), identityLte.getTac(), lte.getDbm(), identityLte.getMcc(), identityLte.getMnc());
+                                    lastTower = tower;
+                                    scanInfo.towerList.add(tower);
+                                }
+                            }
                         }
                     } catch (Exception ex) {
                         Log.d(TAG, new Date() + " \t" + ex.getLocalizedMessage());
@@ -222,5 +242,34 @@ public class MainActivity extends AppCompatActivity {
 //            final String subscriptionInfoNumber = subscriptionInfo.getNumber();
 //        }
         return scanInfo;
+    }
+
+    protected void onPause() {
+//        unregisterReceiver(wifiReciever);
+        super.onPause();
+    }
+
+    protected void onResume() {
+//        registerReceiver(wifiReciever, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+        super.onResume();
+    }
+
+    class WifiScanReceiver extends BroadcastReceiver {
+        @SuppressLint("UseValueOf")
+        public void onReceive(Context c, Intent intent) {
+            List<ScanResult> wifiScanList = mainWifiObj.getScanResults();
+            wifis = new String[wifiScanList.size()];
+            for (int i = 0; i < wifiScanList.size(); i++) {
+                wifis[i] = ((wifiScanList.get(i)).toString());
+            }
+            String filtered[] = new String[wifiScanList.size()];
+            int counter = 0;
+            for (String eachWifi : wifis) {
+                String[] temp = eachWifi.split(",");
+                filtered[counter] = temp[0].substring(5).trim();//+"\n" + temp[2].substring(12).trim()+"\n" +temp[3].substring(6).trim();//0->SSID, 2->Key Management 3-> Strength
+                counter++;
+            }
+            list.setAdapter(new ArrayAdapter<String>(getApplicationContext(), R.layout.list_item, R.id.label, filtered));
+        }
     }
 }

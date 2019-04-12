@@ -9,6 +9,7 @@
         android:id="@+id/date"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:paddingLeft="6dp"
         android:text="date"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -16,14 +17,15 @@
         android:id="@+id/cellId"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:paddingLeft="6dp"
         android:text="cellId:"
-        app:layout_constraintLeft_toRightOf="@+id/date"
-        tools:layout_editor_absoluteX="16dp" />
+        app:layout_constraintLeft_toRightOf="@+id/date" />
 
     <TextView
         android:id="@+id/lac"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:paddingLeft="6dp"
         android:text="lac:"
         app:layout_constraintLeft_toRightOf="@+id/cellId" />
 
@@ -31,6 +33,7 @@
         android:id="@+id/dbm"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:paddingLeft="6dp"
         android:text="dbm:"
         app:layout_constraintLeft_toRightOf="@+id/lac" />
 

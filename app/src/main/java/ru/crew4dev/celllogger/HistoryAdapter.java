@@ -8,7 +8,6 @@ import android.widget.TextView;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
@@ -19,15 +18,7 @@ import ru.crew4dev.celllogger.data.TowerInfo;
 public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.TowerInfoViewHolder> {
 
     final String TAG = "HistoryAdapter";
-    private final Context context;
     private final List<TowerInfo> towerInfos = new ArrayList<>();
-
-    private final int TABLET_ITEM_COUNT = 5;
-    private final int PHONE_ITEM_COUNT = 3;
-
-    public HistoryAdapter(Context context) {
-        this.context = context;
-    }
 
     public void setItems(List<TowerInfo> items) {
         towerInfos.addAll(items);
@@ -76,9 +67,9 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.TowerInf
         void bind(TowerInfo item) {
             SimpleDateFormat sdf = new SimpleDateFormat("hh:mm-dd.MM", Locale.getDefault());
             date.setText(sdf.format(item.getDate()));
-            cellId.setText(" cellId: " + String.valueOf(item.getCellId()));
-            lac.setText(" lac: " + String.valueOf(item.getTac()));
-            dbm.setText(" DBM: " + String.valueOf(item.getDbm()));
+            cellId.setText("cellId: " + String.valueOf(item.getCellId()));
+            lac.setText("lac: " + String.valueOf(item.getTac()));
+            dbm.setText(String.valueOf(item.getDbm()) + "dB");
         }
     }
 }
