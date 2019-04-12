@@ -12,20 +12,20 @@ import java.util.Locale;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import ru.crew4dev.celllogger.data.TowerInfo;
+import ru.crew4dev.celllogger.data.Tower;
 
 public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.TowerInfoViewHolder> {
 
     final String TAG = "HistoryAdapter";
-    private final List<TowerInfo> towerInfos = new ArrayList<>();
+    private final List<Tower> towers = new ArrayList<>();
 
-    public void setItems(List<TowerInfo> items) {
-        towerInfos.addAll(items);
+    public void setItems(List<Tower> items) {
+        towers.addAll(items);
         notifyDataSetChanged();
     }
 
     public void clearItems() {
-        towerInfos.clear();
+        towers.clear();
         notifyDataSetChanged();
     }
 
@@ -38,7 +38,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.TowerInf
 
     @Override
     public void onBindViewHolder(@NonNull HistoryAdapter.TowerInfoViewHolder holder, int position) {
-        holder.bind(towerInfos.get(position));
+        holder.bind(towers.get(position));
     }
 
     public static final SimpleDateFormat dateFullFormat = new SimpleDateFormat("HH:mm dd.MM.yy");
@@ -46,7 +46,7 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.TowerInf
 
     @Override
     public int getItemCount() {
-        return towerInfos.size();
+        return towers.size();
     }
 
     public class TowerInfoViewHolder extends RecyclerView.ViewHolder {
@@ -63,11 +63,11 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.TowerInf
             dbm = itemView.findViewById(R.id.dbm);
         }
 
-        void bind(TowerInfo item) {
+        void bind(Tower item) {
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm-dd.MM", Locale.getDefault());
             date.setText(sdf.format(item.getDate()));
             cellId.setText("cellId: " + String.valueOf(item.getCellId()));
-            lac.setText("lac: " + String.valueOf(item.getTac()));
+            lac.setText("lac: " + String.valueOf(item.getLac()));
             dbm.setText(String.valueOf(item.getDbm()) + "dB");
         }
     }

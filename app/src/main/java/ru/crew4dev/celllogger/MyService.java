@@ -23,32 +23,50 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import ru.crew4dev.celllogger.data.TowerInfo;
-
-import static android.content.ContentValues.TAG;
+import ru.crew4dev.celllogger.data.Place;
+import ru.crew4dev.celllogger.data.Tower;
 
 public class MyService extends Service {
-    final static String LOG_TAG = "MyServiceOld";
-    final static String MY_ACTION = "MY_ACTION";
+    final static String TAG = "MyService";
+    final static String UPDATE_DATA = "UPDATE_DATA";
+    final static String WORK_DONE = "WORK_DONE";
 
-    static final int SLEEP_MC = 20000;
+    static final int SLEEP_MC = 5000;
     static final SimpleDateFormat dateFullFormat = new SimpleDateFormat("dd.MM.yy HH:mm");
-    private TowerInfo lastTower;
+    private Tower lastTower;
+    private Place place;
+    private List<Tower> towers;
+
+    private MyThread myThread = null;
 
     public static final String LAC = "LAC";
     public static final String CELL_ID = "CELL_ID";
 
     public void onCreate() {
         super.onCreate();
-        Log.d(LOG_TAG, "onCreate");
+        Log.d(TAG, "onCreate");
+        towers = new ArrayList<>();
     }
 
     public void onDestroy() {
         super.onDestroy();
-        Log.d(LOG_TAG, "onDestroy");
+        Log.d(TAG, "onDestroy");
+        if (place != null) {
+            place.endDate = new Date();
+            App.db().collectDao().update(place);
+            Log.d(TAG, "update : " + place.toString());
+        }
+        if (myThread != null) {
+            myThread.interrupt();
+            Intent intent = new Intent();
+            intent.setAction(WORK_DONE);
+            sendBroadcast(intent);
+            myThread = null;
+        }
     }
 
     @Override
@@ -58,7 +76,8 @@ public class MyService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        MyThread myThread = new MyThread();
+        Log.d(TAG, "onStartCommand");
+        myThread = new MyThread();
         myThread.start();
         return super.onStartCommand(intent, flags, startId);
     }
@@ -96,7 +115,7 @@ public class MyService extends Service {
                             CellSignalStrengthGsm gsm = ((CellInfoGsm) info).getCellSignalStrength();
                             CellIdentityGsm identityGsm = ((CellInfoGsm) info).getCellIdentity();
                             if (identityGsm.getCid() != Integer.MAX_VALUE && identityGsm.getLac() != Integer.MAX_VALUE) {
-                                TowerInfo tower = new TowerInfo(identityGsm.getCid(), identityGsm.getLac(), gsm.getDbm(), identityGsm.getMcc(), identityGsm.getMnc());
+                                Tower tower = new Tower(identityGsm.getCid(), identityGsm.getLac(), gsm.getDbm(), identityGsm.getMcc(), identityGsm.getMnc());
                                 lastTower = tower;
                                 scanInfo.towerList.add(tower);
                                 Log.d(TAG, new Date() + " \t" + tower.toString());
@@ -106,10 +125,12 @@ public class MyService extends Service {
                             CellIdentityLte identityLte = ((CellInfoLte) info).getCellIdentity();
                             if (identityLte.getCi() != Integer.MAX_VALUE && identityLte.getTac() != Integer.MAX_VALUE) {
                                 Log.d(TAG, new Date() + " \t" + identityLte.getTac() + " \t" + identityLte.getCi());
-                                if (lastTower == null || lastTower.getTac() != identityLte.getTac() || lastTower.getCellId() != identityLte.getCi()) {
-                                    TowerInfo tower = new TowerInfo(identityLte.getCi(), identityLte.getTac(), lte.getDbm(), identityLte.getMcc(), identityLte.getMnc());
+                                if (lastTower == null || lastTower.getLac() != identityLte.getTac() || lastTower.getCellId() != identityLte.getCi()) {
+                                    Tower tower = new Tower(identityLte.getCi(), identityLte.getTac(), lte.getDbm(), identityLte.getMcc(), identityLte.getMnc());
                                     lastTower = tower;
                                     scanInfo.towerList.add(tower);
+                                } else {
+                                    Log.d(TAG, "Is previous tower");
                                 }
                             }
                         }
@@ -137,13 +158,13 @@ public class MyService extends Service {
     }
 
     private void saveLine(MainActivity.ScanInfo scanInfo) {
-        for (TowerInfo towerInfo : scanInfo.towerList) {
+        for (Tower tower : scanInfo.towerList) {
             StringBuilder out = new StringBuilder();
-            out.append(dateFullFormat.format(towerInfo.getDate()));
+            out.append(dateFullFormat.format(tower.getDate()));
             out.append(";");
-            out.append(towerInfo.getTac());
+            out.append(tower.getLac());
             out.append(";");
-            out.append(towerInfo.getCellId());
+            out.append(tower.getCellId());
             out.append("\n");
             writeToFile(out.toString());
         }
@@ -176,32 +197,50 @@ public class MyService extends Service {
     }
 
     public class MyThread extends Thread {
-
         @Override
         public void run() {
-            // TODO Auto-generated method stub
+            boolean isWork = true;
             do {
                 try {
                     MainActivity.ScanInfo scanInfo = getCellInfo();
                     if (scanInfo != null && scanInfo.towerList != null) {
                         saveLine(scanInfo);
-                        for (TowerInfo item : scanInfo.towerList) {
-                            Intent intent = new Intent();
-                            intent.putExtra(LAC, item.getTac());
-                            intent.putExtra(CELL_ID, item.getCellId());
-                            item.getDbm();
-                            intent.setAction(MY_ACTION);
-                            sendBroadcast(intent);
+                        for (Tower tower : scanInfo.towerList) {
+                            if (place == null) {
+                                place = new Place();
+                                place.placeId = App.db().collectDao().insert(place);
+                                Log.d(TAG, "Insert " + place.toString());
+                            }
+                            tower.placeId = place.placeId;
+                            if (!isExistTower(tower)) {
+                                towers.add(tower);
+                                App.db().collectDao().insert(tower);
+                                Log.d(TAG, "Insert " + tower.toString());
+
+                                Intent intent = new Intent();
+                                intent.setAction(UPDATE_DATA);
+                                intent.putExtra(LAC, tower.getLac());
+                                intent.putExtra(CELL_ID, tower.getCellId());
+                                sendBroadcast(intent);
+                            } else {
+                                Log.d(TAG, "Find old tower.");
+                            }
                         }
                     }
                     Thread.sleep(SLEEP_MC);
                 } catch (InterruptedException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    isWork = false;
                 }
-            } while (true);
-            //}
-            //stopSelf();
+            } while (isWork);
+            stopSelf();
         }
+    }
+
+    private boolean isExistTower(Tower tower) {
+        for (Tower item : towers) {
+            if (item.cellId == tower.cellId && item.lac == tower.lac)
+                return true;
+        }
+        return false;
     }
 }

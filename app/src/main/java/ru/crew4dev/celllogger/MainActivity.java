@@ -6,7 +6,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import ru.crew4dev.celllogger.data.TowerInfo;
+import ru.crew4dev.celllogger.data.Tower;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -27,6 +27,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import android.net.wifi.ScanResult;
+import android.util.Log;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -43,11 +45,13 @@ public class MainActivity extends AppCompatActivity {
 
     private RecyclerView taskRecyclerView;
     private TextView textViewUpdateTime;
+    private Button buttonStart;
+    private Button buttonStop;
 
-    MyReceiver myReceiver;
+    private MyReceiver myReceiver;
 
     private HistoryAdapter adapter;
-    private List<TowerInfo> towerList = new ArrayList<>();
+    private List<Tower> towerList = new ArrayList<>();
 
     WifiManager mainWifiObj;
     WifiScanReceiver wifiReciever;
@@ -57,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     Boolean permissionRequested = false;
 
     static class ScanInfo {
-        List<TowerInfo> towerList = new ArrayList<>();
+        List<Tower> towerList = new ArrayList<>();
         Date date;
 
         public ScanInfo() {
@@ -83,7 +87,8 @@ public class MainActivity extends AppCompatActivity {
         //to receive event from our service
         myReceiver = new MyReceiver();
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(MyService.MY_ACTION);
+        intentFilter.addAction(MyService.UPDATE_DATA);
+        intentFilter.addAction(MyService.WORK_DONE);
         registerReceiver(myReceiver, intentFilter);
         super.onStart();
     }
@@ -97,14 +102,23 @@ public class MainActivity extends AppCompatActivity {
     private class MyReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context arg0, Intent intent) {
-            int lac = intent.getIntExtra(MyService.LAC, 0);
-            int cell_id = intent.getIntExtra(MyService.CELL_ID, 0);
-            TowerInfo tower = new TowerInfo(cell_id, lac, 0, 0, 0);
-            towerList.add(tower);
-            adapter.setItems(towerList);
-            adapter.notifyDataSetChanged();
-            textViewUpdateTime.setText(dateFullFormat.format(new Date()));
-            Toast.makeText(MainActivity.this, "Triggered by Service!", Toast.LENGTH_LONG).show();
+            if (intent.getAction().equals(MyService.UPDATE_DATA)) {
+                int lac = intent.getIntExtra(MyService.LAC, 0);
+                int cell_id = intent.getIntExtra(MyService.CELL_ID, 0);
+                Tower tower = new Tower(cell_id, lac, 0, 0, 0);
+                Log.d(TAG, tower.toString());
+                towerList.add(tower);
+                adapter.clearItems();
+                adapter.setItems(towerList);
+                adapter.notifyDataSetChanged();
+                textViewUpdateTime.setText(dateFullFormat.format(new Date()));
+            } else if (intent.getAction().equals(MyService.WORK_DONE)) {
+                buttonStart.setEnabled(true);
+                buttonStop.setEnabled(false);
+            } else {
+
+            }
+            Toast.makeText(MainActivity.this, "Triggered by Service: " + intent.getAction(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -113,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        checkPermissions();
+        //checkPermissions();
 
 //        mainWifiObj = (WifiManager) getSystemService(Context.WIFI_SERVICE);
 //        wifiReciever = new WifiScanReceiver();
@@ -136,6 +150,11 @@ public class MainActivity extends AppCompatActivity {
 
         textViewUpdateTime = findViewById(R.id.textViewUpdateTime);
 
+        buttonStart = findViewById(R.id.buttonStart);
+        buttonStart.setOnClickListener(v -> toStart());
+        buttonStop = findViewById(R.id.buttonStop);
+        buttonStop.setOnClickListener(v -> toStop());
+
         Timer myTimer = new Timer();
         myTimer.schedule(new TimerTask() {
             @Override
@@ -145,12 +164,25 @@ public class MainActivity extends AppCompatActivity {
         }, 0, 10000);
     }
 
+    private void toStart() {
+        checkPermissions();
+    }
+
+    private void toStartService() {
+        buttonStart.setEnabled(false);
+        buttonStop.setEnabled(true);
+        startService(new Intent(MainActivity.this, MyService.class));
+    }
+
+    private void toStop() {
+        stopService(new Intent(MainActivity.this, MyService.class));
+    }
+
     private void checkPermissions() {
         if ((ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) ||
                 (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) ||
                 (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)) {
-            //Start our own service
-            startService(new Intent(MainActivity.this, MyService.class));
+            toStartService();
         } else {
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.READ_PHONE_STATE, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, REQUEST_CODE_PERMISSION_ACCESS_COARSE_LOCATION);
         }
@@ -161,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case REQUEST_CODE_PERMISSION_ACCESS_COARSE_LOCATION:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    startService(new Intent(MainActivity.this, MyService.class));
+                    toStartService();
                 } else {
                     // permission denied
                 }
