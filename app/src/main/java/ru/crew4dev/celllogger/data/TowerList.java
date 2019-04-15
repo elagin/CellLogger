@@ -15,6 +15,7 @@ public class TowerList {
     }
 
     public void addAll(List<Tower> list){
+        towers.clear();
         towers.addAll(list);
     }
 

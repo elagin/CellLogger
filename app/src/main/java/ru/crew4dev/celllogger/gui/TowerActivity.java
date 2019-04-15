@@ -41,10 +41,10 @@ import android.widget.Toast;
 
 import static ru.crew4dev.celllogger.Constants.PLACE_ID;
 
-public class MainActivity extends AppCompatActivity {
+public class TowerActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_COARSE_LOCATION = 1;
-    private static final String TAG = "MainActivity";
+    private static final String TAG = "TowerActivity";
 
     final int REQUEST_CODE_PERMISSION_ACCESS_COARSE_LOCATION = 10;
 
@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText editPlaceName;
 
     private MyReceiver myReceiver;
-    private HistoryAdapter adapter;
+    private TowerAdapter adapter;
     private TowerList towerList = new TowerList();
 
     WifiManager mainWifiObj;
@@ -69,18 +69,9 @@ public class MainActivity extends AppCompatActivity {
 
     Boolean permissionRequested = false;
 
-    static class ScanInfo {
-        List<Tower> towerList = new ArrayList<>();
-        Date date;
-
-        public ScanInfo() {
-            date = new Date();
-        }
-    }
-
-    private void updateGUI() {
-        myHandler.post(myRunnable);
-    }
+//    private void updateGUI() {
+//        myHandler.post(myRunnable);
+//    }
 
     final Runnable myRunnable = new Runnable() {
         public void run() {
@@ -116,13 +107,7 @@ public class MainActivity extends AppCompatActivity {
                     int dbm = intent.getIntExtra(MyService.DBM, 0);
                     Tower tower = new Tower(cell_id, lac, dbm, 0, 0);
                     Log.d(TAG, tower.toString());
-
-                    if (!towerList.isExistTower(tower)) {
-                        towerList.add(tower);
-                        adapter.clearItems();
-                        adapter.setItems(towerList.getTowers());
-                        adapter.notifyDataSetChanged();
-                    }
+                    loadData();
                     textViewUpdateTime.setText(Constants.timeFormat.format(new Date()));
                     StringBuilder current = new StringBuilder();
                     current.append("cellId: " + String.valueOf(cell_id));
@@ -134,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
                     buttonStop.setEnabled(false);
                 }
             }
-            Toast.makeText(MainActivity.this, "Triggered by Service: " + intent.getAction(), Toast.LENGTH_LONG).show();
+            Toast.makeText(TowerActivity.this, "Triggered by Service: " + intent.getAction(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -153,13 +138,13 @@ public class MainActivity extends AppCompatActivity {
 //                // selected item
 //                String ssid = ((TextView) view).getText().toString();
 //                //connectToWifi(ssid);
-//                Toast.makeText(MainActivity.this, "Wifi SSID : " + ssid, Toast.LENGTH_SHORT).show();
+//                Toast.makeText(TowerActivity.this, "Wifi SSID : " + ssid, Toast.LENGTH_SHORT).show();
 //
 //            }
 //        });
 
         taskRecyclerView = findViewById(R.id.historyRecyclerView);
-        adapter = new HistoryAdapter();
+        adapter = new TowerAdapter();
         taskRecyclerView.setAdapter(adapter);
         taskRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -176,22 +161,27 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = getIntent();
         if (intent != null) {
             if (getIntent().hasExtra(PLACE_ID)) {
-                Long placeId = intent.getLongExtra(PLACE_ID, 0);
-                place = App.db().collectDao().getPlace(placeId);
-                towerList.addAll(App.db().collectDao().getTowers(place.placeId));
-                adapter.clearItems();
-                adapter.setItems(towerList.getTowers());
-                adapter.notifyDataSetChanged();
+                place = App.db().collectDao().getPlace(intent.getLongExtra(PLACE_ID, 0));
                 editPlaceName.setText(place.getName());
             }
         }
-        Timer myTimer = new Timer();
-        myTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                updateGUI();
-            }
-        }, 0, 10000);
+//        Timer myTimer = new Timer();
+//        myTimer.schedule(new TimerTask() {
+//            @Override
+//            public void run() {
+//                updateGUI();
+//            }
+//        }, 0, 10000);
+    }
+
+    private void loadData(){
+        Log.d(TAG, "loadData");
+        if(place != null) {
+            towerList.addAll(App.db().collectDao().getTowers(place.placeId));
+            adapter.clearItems();
+            adapter.setItems(towerList.getTowers());
+            adapter.notifyDataSetChanged();
+        }
     }
 
     private void toStart() {
@@ -201,7 +191,7 @@ public class MainActivity extends AppCompatActivity {
     private void toStartService() {
         buttonStart.setEnabled(false);
         buttonStop.setEnabled(true);
-        Intent intent = new Intent(MainActivity.this, MyService.class);
+        Intent intent = new Intent(TowerActivity.this, MyService.class);
         place = new Place();
         if (!editPlaceName.getText().toString().isEmpty()) {
             place.setName(editPlaceName.getText().toString());
@@ -213,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void toStop() {
-        stopService(new Intent(MainActivity.this, MyService.class));
+        stopService(new Intent(TowerActivity.this, MyService.class));
     }
 
     private void checkPermissions() {
@@ -263,8 +253,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
 //        registerReceiver(wifiReciever, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
         super.onResume();
+        loadData();
     }
-
 
     class WifiScanReceiver extends BroadcastReceiver {
         @SuppressLint("UseValueOf")

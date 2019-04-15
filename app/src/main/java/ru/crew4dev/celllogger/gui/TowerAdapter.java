@@ -15,9 +15,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import ru.crew4dev.celllogger.R;
 import ru.crew4dev.celllogger.data.Tower;
 
-public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.TowerInfoViewHolder> {
+public class TowerAdapter extends RecyclerView.Adapter<TowerAdapter.TowerInfoViewHolder> {
 
-    final String TAG = "HistoryAdapter";
+    final String TAG = "TowerAdapter";
     private final List<Tower> towers = new ArrayList<>();
 
     public void setItems(List<Tower> items) {
@@ -32,13 +32,13 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.TowerInf
 
     @NonNull
     @Override
-    public HistoryAdapter.TowerInfoViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
+    public TowerAdapter.TowerInfoViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
         View view = LayoutInflater.from(viewGroup.getContext()).inflate(R.layout.tower_row, viewGroup, false);
         return new TowerInfoViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull HistoryAdapter.TowerInfoViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull TowerAdapter.TowerInfoViewHolder holder, int position) {
         holder.bind(towers.get(position));
     }
 

@@ -24,7 +24,7 @@ import static androidx.core.content.ContextCompat.startActivity;
 
 public class PlaceAdapter extends RecyclerView.Adapter<PlaceAdapter.PlaceViewHolder> {
 
-    final String TAG = "HistoryAdapter";
+    final String TAG = "TowerAdapter";
     private final List<Place> places = new ArrayList<>();
 
     public void setItems(List<Place> items) {
@@ -70,7 +70,7 @@ public class PlaceAdapter extends RecyclerView.Adapter<PlaceAdapter.PlaceViewHol
             itemView.setOnClickListener(v -> {
                 int i = getAdapterPosition();
                 Place place = places.get(i);
-                Intent intent = new Intent(itemView.getContext(), MainActivity.class);
+                Intent intent = new Intent(itemView.getContext(), TowerActivity.class);
                 intent.putExtra(Constants.PLACE_ID, place.placeId);
                 startActivity(itemView.getContext(), intent, null);
             });

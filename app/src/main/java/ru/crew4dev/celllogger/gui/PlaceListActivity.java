@@ -38,7 +38,7 @@ public class PlaceListActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        Intent intent = new Intent(this, MainActivity.class);
+        Intent intent = new Intent(this, TowerActivity.class);
         startActivity(intent, null);
         return super.onOptionsItemSelected(item);
     }
