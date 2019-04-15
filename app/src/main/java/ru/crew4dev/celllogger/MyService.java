@@ -99,7 +99,7 @@ public class MyService extends Service {
     public List<Tower> getCellInfo() {
         List<Tower> towerList = new ArrayList<>();
         TelephonyManager tel = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        int phoneTypeInt = tel.getPhoneType();
+//        int phoneTypeInt = tel.getPhoneType();
 //        String phoneType = phoneTypeInt == TelephonyManager.PHONE_TYPE_GSM ? "gsm" : phoneType;
 //        phoneType = phoneTypeInt == TelephonyManager.PHONE_TYPE_CDMA ? "cdma" : phoneType;
 
@@ -138,13 +138,8 @@ public class MyService extends Service {
                             CellIdentityLte identityLte = ((CellInfoLte) info).getCellIdentity();
                             if (identityLte.getCi() != Integer.MAX_VALUE && identityLte.getTac() != Integer.MAX_VALUE) {
                                 Log.d(TAG, new Date() + " \t" + identityLte.getTac() + " \t" + identityLte.getCi());
-                                if (lastTower == null || lastTower.getLac() != identityLte.getTac() || lastTower.getCellId() != identityLte.getCi()) {
-                                    Tower tower = new Tower(identityLte.getCi(), identityLte.getTac(), lte.getDbm(), identityLte.getMcc(), identityLte.getMnc());
-                                    lastTower = tower;
-                                    towerList.add(tower);
-                                } else {
-                                    Log.d(TAG, "Is previous tower");
-                                }
+                                Tower tower = new Tower(identityLte.getCi(), identityLte.getTac(), lte.getDbm(), identityLte.getMcc(), identityLte.getMnc());
+                                towerList.add(tower);
                             }
                         }
                     } catch (Exception ex) {
@@ -186,10 +181,7 @@ public class MyService extends Service {
     /* Checks if external storage is available for read and write */
     public boolean isExternalStorageWritable() {
         String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            return true;
-        }
-        return false;
+        return Environment.MEDIA_MOUNTED.equals(state);
     }
 
     private void writeToFile(String data) {
@@ -215,24 +207,28 @@ public class MyService extends Service {
             boolean isWork = true;
             do {
                 try {
-                    List<Tower> towerList = getCellInfo();
-                    if (towerList != null) {
-                        saveTowerInfo(towerList);
-                        for (Tower tower : towerList) {
-                            tower.placeId = place.placeId;
+                    final List<Tower> towerList = getCellInfo();
+                    saveTowerInfo(towerList);
+                    for (Tower tower : towerList) {
+                        //Log.d(TAG, new Date() + " \t" + identityLte.getTac() + " \t" + identityLte.getCi());
+                        Intent intent = new Intent();
+                        intent.setAction(Constants.UPDATE_DATA);
+                        intent.putExtra(LAC, tower.getLac());
+                        intent.putExtra(CELL_ID, tower.getCellId());
+                        intent.putExtra(DBM, tower.getDbm());
+                        sendBroadcast(intent);
+                        if (lastTower == null || lastTower.getLac() != tower.getLac() || lastTower.getCellId() != tower.getCellId()) {
+                            lastTower = tower;
                             if (!towers.isExistTower(tower)) {
+                                tower.placeId = place.placeId;
                                 towers.add(tower);
                                 App.db().collectDao().insert(tower);
                                 Log.d(TAG, "Insert " + tower.toString());
                             } else {
-                                Log.d(TAG, "Find old tower.");
+                                Log.d(TAG, "Exist tower");
                             }
-                            Intent intent = new Intent();
-                            intent.setAction(Constants.UPDATE_DATA);
-                            intent.putExtra(LAC, tower.getLac());
-                            intent.putExtra(CELL_ID, tower.getCellId());
-                            intent.putExtra(DBM, tower.getDbm());
-                            sendBroadcast(intent);
+                        } else {
+                            Log.d(TAG, "Old tower");
                         }
                     }
                     Thread.sleep(SLEEP_MC);

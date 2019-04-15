@@ -26,7 +26,6 @@ public class PlaceListActivity extends AppCompatActivity {
         adapter = new PlaceAdapter();
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        loadDate();
     }
 
     @Override
@@ -44,7 +43,7 @@ public class PlaceListActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void loadDate(){
+    private void loadData(){
         List<Place> placeList = App.db().collectDao().getPlaces();
         for(Place place: placeList){
             place.setTowerList(App.db().collectDao().getTowers(place.placeId));
@@ -56,5 +55,10 @@ public class PlaceListActivity extends AppCompatActivity {
         adapter.clearItems();
         adapter.setItems(placeList);
         adapter.notifyDataSetChanged();
+    }
+
+    protected void onResume() {
+        loadData();
+        super.onResume();
     }
 }
