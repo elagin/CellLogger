@@ -82,8 +82,8 @@ public class MyService extends Service {
         return super.onStartCommand(intent, flags, startId);
     }
 
-    public MainActivity.ScanInfo getCellInfo() {
-        MainActivity.ScanInfo scanInfo = new MainActivity.ScanInfo();
+    public List<Tower> getCellInfo() {
+        List<Tower> towerList = new ArrayList<>();
         TelephonyManager tel = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         int phoneTypeInt = tel.getPhoneType();
         String phoneType = null;
@@ -117,7 +117,7 @@ public class MyService extends Service {
                             if (identityGsm.getCid() != Integer.MAX_VALUE && identityGsm.getLac() != Integer.MAX_VALUE) {
                                 Tower tower = new Tower(identityGsm.getCid(), identityGsm.getLac(), gsm.getDbm(), identityGsm.getMcc(), identityGsm.getMnc());
                                 lastTower = tower;
-                                scanInfo.towerList.add(tower);
+                                towerList.add(tower);
                                 Log.d(TAG, new Date() + " \t" + tower.toString());
                             }
                         } else if (info instanceof CellInfoLte) {
@@ -128,7 +128,7 @@ public class MyService extends Service {
                                 if (lastTower == null || lastTower.getLac() != identityLte.getTac() || lastTower.getCellId() != identityLte.getCi()) {
                                     Tower tower = new Tower(identityLte.getCi(), identityLte.getTac(), lte.getDbm(), identityLte.getMcc(), identityLte.getMnc());
                                     lastTower = tower;
-                                    scanInfo.towerList.add(tower);
+                                    towerList.add(tower);
                                 } else {
                                     Log.d(TAG, "Is previous tower");
                                 }
@@ -154,11 +154,11 @@ public class MyService extends Service {
 //            final int mnc = subscriptionInfo.getMnc();
 //            final String subscriptionInfoNumber = subscriptionInfo.getNumber();
 //        }
-        return scanInfo;
+        return towerList;
     }
 
-    private void saveLine(MainActivity.ScanInfo scanInfo) {
-        for (Tower tower : scanInfo.towerList) {
+    private void saveLine(List<Tower> towerList) {
+        for (Tower tower : towerList) {
             StringBuilder out = new StringBuilder();
             out.append(dateFullFormat.format(tower.getDate()));
             out.append(";");
@@ -202,10 +202,10 @@ public class MyService extends Service {
             boolean isWork = true;
             do {
                 try {
-                    MainActivity.ScanInfo scanInfo = getCellInfo();
-                    if (scanInfo != null && scanInfo.towerList != null) {
-                        saveLine(scanInfo);
-                        for (Tower tower : scanInfo.towerList) {
+                    List<Tower> towerList = getCellInfo();
+                    if (towerList != null) {
+                        saveLine(towerList);
+                        for (Tower tower : towerList) {
                             if (place == null) {
                                 place = new Place();
                                 place.placeId = App.db().collectDao().insert(place);

@@ -1,4 +1,4 @@
-package ru.crew4dev.celllogger;
+package ru.crew4dev.celllogger.gui;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -6,6 +6,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import ru.crew4dev.celllogger.Constants;
+import ru.crew4dev.celllogger.MyService;
+import ru.crew4dev.celllogger.R;
 import ru.crew4dev.celllogger.data.Tower;
 
 import android.Manifest;
@@ -29,10 +32,11 @@ import java.util.TimerTask;
 import android.net.wifi.ScanResult;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import static ru.crew4dev.celllogger.MyService.dateFullFormat;
+import static ru.crew4dev.celllogger.gui.HistoryAdapter.dateFullFormat;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -47,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView textViewUpdateTime;
     private Button buttonStart;
     private Button buttonStop;
+    private EditText editPlaceName;
 
     private MyReceiver myReceiver;
 
@@ -87,8 +92,8 @@ public class MainActivity extends AppCompatActivity {
         //to receive event from our service
         myReceiver = new MyReceiver();
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(MyService.UPDATE_DATA);
-        intentFilter.addAction(MyService.WORK_DONE);
+        intentFilter.addAction(Constants.UPDATE_DATA);
+        intentFilter.addAction(Constants.WORK_DONE);
         registerReceiver(myReceiver, intentFilter);
         super.onStart();
     }
@@ -102,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
     private class MyReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context arg0, Intent intent) {
-            if (intent.getAction().equals(MyService.UPDATE_DATA)) {
+            if (intent.getAction().equals(Constants.UPDATE_DATA)) {
                 int lac = intent.getIntExtra(MyService.LAC, 0);
                 int cell_id = intent.getIntExtra(MyService.CELL_ID, 0);
                 Tower tower = new Tower(cell_id, lac, 0, 0, 0);
@@ -112,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
                 adapter.setItems(towerList);
                 adapter.notifyDataSetChanged();
                 textViewUpdateTime.setText(dateFullFormat.format(new Date()));
-            } else if (intent.getAction().equals(MyService.WORK_DONE)) {
+            } else if (intent.getAction().equals(Constants.WORK_DONE)) {
                 buttonStart.setEnabled(true);
                 buttonStop.setEnabled(false);
             } else {
@@ -154,6 +159,8 @@ public class MainActivity extends AppCompatActivity {
         buttonStart.setOnClickListener(v -> toStart());
         buttonStop = findViewById(R.id.buttonStop);
         buttonStop.setOnClickListener(v -> toStop());
+
+        editPlaceName = findViewById(R.id.editPlaceName);
 
         Timer myTimer = new Timer();
         myTimer.schedule(new TimerTask() {

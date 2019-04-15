@@ -1,4 +1,4 @@
-package ru.crew4dev.celllogger;
+package ru.crew4dev.celllogger.gui;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -12,6 +12,7 @@ import java.util.Locale;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import ru.crew4dev.celllogger.R;
 import ru.crew4dev.celllogger.data.Tower;
 
 public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.TowerInfoViewHolder> {

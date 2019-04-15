@@ -31,6 +31,9 @@ public abstract class CollectDao {
     @Query("select * from tower")
     public abstract List<Tower> getTowers();
 
+    @Query("select * from tower where placeId = :placeId")
+    public abstract List<Tower> getTowers(Long placeId);
+
     @Insert
     public abstract Long insert(Tower item);
 
