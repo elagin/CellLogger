@@ -18,7 +18,7 @@ public class Place {
     public Date startDate;
     @TypeConverters({DateConverter.class})
     public Date endDate;
-    public String name;
+    public String name = "";
 
     public void setTowerList(List<Tower> towerList) {
         this.towerList = towerList;

@@ -42,8 +42,6 @@ public class HistoryAdapter extends RecyclerView.Adapter<HistoryAdapter.TowerInf
         holder.bind(towers.get(position));
     }
 
-    public static final SimpleDateFormat dateFullFormat = new SimpleDateFormat("HH:mm dd.MM.yy");
-    public static final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
 
     @Override
     public int getItemCount() {

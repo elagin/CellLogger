@@ -14,6 +14,9 @@ public abstract class CollectDao {
 
     @Query("select * from place")
     public abstract List<Place> getPlaces();
+
+    @Query("select * from place where placeId = :placeId")
+    public abstract Place getPlace(Long placeId);
 /*
     @Query("select * from sessions where sessionId = :sessionId")
     public abstract Session getSessionBySession(Long sessionId);

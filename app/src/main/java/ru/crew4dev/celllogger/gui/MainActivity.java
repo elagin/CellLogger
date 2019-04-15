@@ -6,10 +6,13 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import ru.crew4dev.celllogger.App;
 import ru.crew4dev.celllogger.Constants;
 import ru.crew4dev.celllogger.MyService;
 import ru.crew4dev.celllogger.R;
+import ru.crew4dev.celllogger.data.Place;
 import ru.crew4dev.celllogger.data.Tower;
+import ru.crew4dev.celllogger.data.TowerList;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -36,7 +39,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import static ru.crew4dev.celllogger.gui.HistoryAdapter.dateFullFormat;
+import static ru.crew4dev.celllogger.Constants.PLACE_ID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -49,19 +52,20 @@ public class MainActivity extends AppCompatActivity {
 
     private RecyclerView taskRecyclerView;
     private TextView textViewUpdateTime;
+    private TextView currentTower;
     private Button buttonStart;
     private Button buttonStop;
     private EditText editPlaceName;
 
     private MyReceiver myReceiver;
-
     private HistoryAdapter adapter;
-    private List<Tower> towerList = new ArrayList<>();
+    private TowerList towerList = new TowerList();
 
     WifiManager mainWifiObj;
     WifiScanReceiver wifiReciever;
     //WifiLevelReceiver receiver;
     String wifis[];
+    private Place place;
 
     Boolean permissionRequested = false;
 
@@ -86,10 +90,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStart() {
-        // TODO Auto-generated method stub
-
-        //Register BroadcastReceiver
-        //to receive event from our service
+        //Register BroadcastReceiver to receive event from our service
         myReceiver = new MyReceiver();
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(Constants.UPDATE_DATA);
@@ -110,18 +111,25 @@ public class MainActivity extends AppCompatActivity {
             if (intent.getAction().equals(Constants.UPDATE_DATA)) {
                 int lac = intent.getIntExtra(MyService.LAC, 0);
                 int cell_id = intent.getIntExtra(MyService.CELL_ID, 0);
-                Tower tower = new Tower(cell_id, lac, 0, 0, 0);
+                int dbm = intent.getIntExtra(MyService.DBM, 0);
+                Tower tower = new Tower(cell_id, lac, dbm, 0, 0);
                 Log.d(TAG, tower.toString());
-                towerList.add(tower);
-                adapter.clearItems();
-                adapter.setItems(towerList);
-                adapter.notifyDataSetChanged();
-                textViewUpdateTime.setText(dateFullFormat.format(new Date()));
+
+                if (!towerList.isExistTower(tower)) {
+                    towerList.add(tower);
+                    adapter.clearItems();
+                    adapter.setItems(towerList.getTowers());
+                    adapter.notifyDataSetChanged();
+                }
+                textViewUpdateTime.setText(Constants.timeFormat.format(new Date()));
+                StringBuilder current = new StringBuilder();
+                current.append("cellId: " + String.valueOf(cell_id));
+                current.append(" lac: " + String.valueOf(lac));
+                current.append(" " + String.valueOf(dbm) + "dB");
+                currentTower.setText(current.toString());
             } else if (intent.getAction().equals(Constants.WORK_DONE)) {
                 buttonStart.setEnabled(true);
                 buttonStop.setEnabled(false);
-            } else {
-
             }
             Toast.makeText(MainActivity.this, "Triggered by Service: " + intent.getAction(), Toast.LENGTH_LONG).show();
         }
@@ -131,7 +139,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
         //checkPermissions();
 
 //        mainWifiObj = (WifiManager) getSystemService(Context.WIFI_SERVICE);
@@ -154,6 +161,7 @@ public class MainActivity extends AppCompatActivity {
         taskRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         textViewUpdateTime = findViewById(R.id.textViewUpdateTime);
+        currentTower = findViewById(R.id.currentTower);
 
         buttonStart = findViewById(R.id.buttonStart);
         buttonStart.setOnClickListener(v -> toStart());
@@ -162,6 +170,18 @@ public class MainActivity extends AppCompatActivity {
 
         editPlaceName = findViewById(R.id.editPlaceName);
 
+        Intent intent = getIntent();
+        if (intent != null) {
+            if (getIntent().hasExtra(PLACE_ID)) {
+                Long placeId = intent.getLongExtra(PLACE_ID, 0);
+                place = App.db().collectDao().getPlace(placeId);
+                towerList.addAll(App.db().collectDao().getTowers(place.placeId));
+                adapter.clearItems();
+                adapter.setItems(towerList.getTowers());
+                adapter.notifyDataSetChanged();
+                editPlaceName.setText(place.getName());
+            }
+        }
         Timer myTimer = new Timer();
         myTimer.schedule(new TimerTask() {
             @Override
@@ -178,7 +198,15 @@ public class MainActivity extends AppCompatActivity {
     private void toStartService() {
         buttonStart.setEnabled(false);
         buttonStop.setEnabled(true);
-        startService(new Intent(MainActivity.this, MyService.class));
+        Intent intent = new Intent(MainActivity.this, MyService.class);
+        place = new Place();
+        if (!editPlaceName.getText().toString().isEmpty()) {
+            place.setName(editPlaceName.getText().toString());
+        }
+        place.placeId = App.db().collectDao().insert(place);
+        Log.d(TAG, "Insert " + place.toString());
+        intent.putExtra(PLACE_ID, place.placeId);
+        startService(intent);
     }
 
     private void toStop() {
@@ -233,6 +261,7 @@ public class MainActivity extends AppCompatActivity {
 //        registerReceiver(wifiReciever, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
         super.onResume();
     }
+
 
     class WifiScanReceiver extends BroadcastReceiver {
         @SuppressLint("UseValueOf")

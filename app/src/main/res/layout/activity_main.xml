@@ -10,7 +10,16 @@
         android:id="@+id/textViewUpdateTime"
         android:layout_width="wrap_content"
         android:layout_height="0dp"
-        android:text="TextView"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/currentTower"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingLeft="6dp"
+        app:layout_constraintLeft_toRightOf="@+id/textViewUpdateTime"
+        app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.recyclerview.widget.RecyclerView

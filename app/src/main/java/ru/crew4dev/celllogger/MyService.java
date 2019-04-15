@@ -29,27 +29,34 @@ import java.util.List;
 
 import ru.crew4dev.celllogger.data.Place;
 import ru.crew4dev.celllogger.data.Tower;
+import ru.crew4dev.celllogger.data.TowerList;
+
+import static ru.crew4dev.celllogger.Constants.PLACE_ID;
+import static ru.crew4dev.celllogger.Constants.WORK_DONE;
 
 public class MyService extends Service {
     final static String TAG = "MyService";
-    final static String UPDATE_DATA = "UPDATE_DATA";
-    final static String WORK_DONE = "WORK_DONE";
 
     static final int SLEEP_MC = 5000;
     static final SimpleDateFormat dateFullFormat = new SimpleDateFormat("dd.MM.yy HH:mm");
     private Tower lastTower;
     private Place place;
-    private List<Tower> towers;
+    private TowerList towers;
 
     private MyThread myThread = null;
 
     public static final String LAC = "LAC";
     public static final String CELL_ID = "CELL_ID";
+    public static final String DBM = "DBM";
 
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate");
-        towers = new ArrayList<>();
+        towers = new TowerList();
+        StringBuilder out = new StringBuilder();
+        out.append(dateFullFormat.format(new Date()));
+        out.append(" - MyService onCreate");
+        writeToFile(out.toString());
     }
 
     public void onDestroy() {
@@ -59,6 +66,10 @@ public class MyService extends Service {
             place.endDate = new Date();
             App.db().collectDao().update(place);
             Log.d(TAG, "update : " + place.toString());
+            StringBuilder out = new StringBuilder();
+            out.append(dateFullFormat.format(new Date()));
+            out.append(" - MyService onDestroy");
+            writeToFile(out.toString());
         }
         if (myThread != null) {
             myThread.interrupt();
@@ -77,6 +88,9 @@ public class MyService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand");
+        if (intent.hasExtra(PLACE_ID)) {
+            place = App.db().collectDao().getPlace(intent.getLongExtra(PLACE_ID, 0));
+        }
         myThread = new MyThread();
         myThread.start();
         return super.onStartCommand(intent, flags, startId);
@@ -157,7 +171,7 @@ public class MyService extends Service {
         return towerList;
     }
 
-    private void saveLine(List<Tower> towerList) {
+    private void saveTowerInfo(List<Tower> towerList) {
         for (Tower tower : towerList) {
             StringBuilder out = new StringBuilder();
             out.append(dateFullFormat.format(tower.getDate()));
@@ -204,27 +218,22 @@ public class MyService extends Service {
                 try {
                     List<Tower> towerList = getCellInfo();
                     if (towerList != null) {
-                        saveLine(towerList);
+                        saveTowerInfo(towerList);
                         for (Tower tower : towerList) {
-                            if (place == null) {
-                                place = new Place();
-                                place.placeId = App.db().collectDao().insert(place);
-                                Log.d(TAG, "Insert " + place.toString());
-                            }
                             tower.placeId = place.placeId;
-                            if (!isExistTower(tower)) {
+                            if (!towers.isExistTower(tower)) {
                                 towers.add(tower);
                                 App.db().collectDao().insert(tower);
                                 Log.d(TAG, "Insert " + tower.toString());
-
-                                Intent intent = new Intent();
-                                intent.setAction(UPDATE_DATA);
-                                intent.putExtra(LAC, tower.getLac());
-                                intent.putExtra(CELL_ID, tower.getCellId());
-                                sendBroadcast(intent);
                             } else {
                                 Log.d(TAG, "Find old tower.");
                             }
+                            Intent intent = new Intent();
+                            intent.setAction(Constants.UPDATE_DATA);
+                            intent.putExtra(LAC, tower.getLac());
+                            intent.putExtra(CELL_ID, tower.getCellId());
+                            intent.putExtra(DBM, tower.getDbm());
+                            sendBroadcast(intent);
                         }
                     }
                     Thread.sleep(SLEEP_MC);
@@ -234,13 +243,5 @@ public class MyService extends Service {
             } while (isWork);
             stopSelf();
         }
-    }
-
-    private boolean isExistTower(Tower tower) {
-        for (Tower item : towers) {
-            if (item.cellId == tower.cellId && item.lac == tower.lac)
-                return true;
-        }
-        return false;
     }
 }
