@@ -36,6 +36,6 @@
         android:layout_height="wrap_content"
         android:paddingLeft="6dp"
         android:text="TextView"
-        app:layout_constraintLeft_toRightOf="@+id/placeName"
+        app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewStartDate" />
 </androidx.constraintlayout.widget.ConstraintLayout>

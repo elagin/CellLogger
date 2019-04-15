@@ -1,9 +1,9 @@
-package ru.mkb.dsamobile.db;
+package ru.crew4dev.celllogger.db;
 
 import javax.inject.Inject;
 
 import ru.crew4dev.celllogger.data.LocalDatabase;
-import ru.mkb.dsamobile.db.interfaces.CollectDbApiContract;
+import ru.crew4dev.celllogger.db.interfaces.CollectDbApiContract;
 
 public class CollectDbApiImp implements CollectDbApiContract {
     private LocalDatabase collectDatabase;

@@ -1,4 +1,4 @@
-package ru.mkb.dsamobile.db.interfaces;
+package ru.crew4dev.celllogger.db.interfaces;
 
 import androidx.room.Dao;
 import androidx.room.Insert;

@@ -100,8 +100,7 @@ public class MyService extends Service {
         List<Tower> towerList = new ArrayList<>();
         TelephonyManager tel = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         int phoneTypeInt = tel.getPhoneType();
-        String phoneType = null;
-        phoneType = phoneTypeInt == TelephonyManager.PHONE_TYPE_GSM ? "gsm" : phoneType;
+//        String phoneType = phoneTypeInt == TelephonyManager.PHONE_TYPE_GSM ? "gsm" : phoneType;
 //        phoneType = phoneTypeInt == TelephonyManager.PHONE_TYPE_CDMA ? "cdma" : phoneType;
 
         //from Android M up must use getAllCellInfo

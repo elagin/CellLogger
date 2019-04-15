@@ -1,4 +1,4 @@
-package ru.mkb.dsamobile.db.converters;
+package ru.crew4dev.celllogger.db.converters;
 
 import androidx.room.TypeConverter;
 

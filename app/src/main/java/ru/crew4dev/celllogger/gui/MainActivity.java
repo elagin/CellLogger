@@ -108,28 +108,31 @@ public class MainActivity extends AppCompatActivity {
     private class MyReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context arg0, Intent intent) {
-            if (intent.getAction().equals(Constants.UPDATE_DATA)) {
-                int lac = intent.getIntExtra(MyService.LAC, 0);
-                int cell_id = intent.getIntExtra(MyService.CELL_ID, 0);
-                int dbm = intent.getIntExtra(MyService.DBM, 0);
-                Tower tower = new Tower(cell_id, lac, dbm, 0, 0);
-                Log.d(TAG, tower.toString());
+            String action = intent.getAction();
+            if (action != null) {
+                if (action.equals(Constants.UPDATE_DATA)) {
+                    int lac = intent.getIntExtra(MyService.LAC, 0);
+                    int cell_id = intent.getIntExtra(MyService.CELL_ID, 0);
+                    int dbm = intent.getIntExtra(MyService.DBM, 0);
+                    Tower tower = new Tower(cell_id, lac, dbm, 0, 0);
+                    Log.d(TAG, tower.toString());
 
-                if (!towerList.isExistTower(tower)) {
-                    towerList.add(tower);
-                    adapter.clearItems();
-                    adapter.setItems(towerList.getTowers());
-                    adapter.notifyDataSetChanged();
+                    if (!towerList.isExistTower(tower)) {
+                        towerList.add(tower);
+                        adapter.clearItems();
+                        adapter.setItems(towerList.getTowers());
+                        adapter.notifyDataSetChanged();
+                    }
+                    textViewUpdateTime.setText(Constants.timeFormat.format(new Date()));
+                    StringBuilder current = new StringBuilder();
+                    current.append("cellId: " + String.valueOf(cell_id));
+                    current.append(" lac: " + String.valueOf(lac));
+                    current.append(" " + String.valueOf(dbm) + "dB");
+                    currentTower.setText(current.toString());
+                } else if (intent.getAction().equals(Constants.WORK_DONE)) {
+                    buttonStart.setEnabled(true);
+                    buttonStop.setEnabled(false);
                 }
-                textViewUpdateTime.setText(Constants.timeFormat.format(new Date()));
-                StringBuilder current = new StringBuilder();
-                current.append("cellId: " + String.valueOf(cell_id));
-                current.append(" lac: " + String.valueOf(lac));
-                current.append(" " + String.valueOf(dbm) + "dB");
-                currentTower.setText(current.toString());
-            } else if (intent.getAction().equals(Constants.WORK_DONE)) {
-                buttonStart.setEnabled(true);
-                buttonStop.setEnabled(false);
             }
             Toast.makeText(MainActivity.this, "Triggered by Service: " + intent.getAction(), Toast.LENGTH_LONG).show();
         }

@@ -6,7 +6,7 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 import androidx.room.TypeConverters;
-import ru.mkb.dsamobile.db.converters.DateConverter;
+import ru.crew4dev.celllogger.db.converters.DateConverter;
 
 @Entity(tableName = "tower")
 public class Tower {
