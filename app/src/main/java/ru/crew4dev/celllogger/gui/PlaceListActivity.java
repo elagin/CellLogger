@@ -8,8 +8,11 @@ import ru.crew4dev.celllogger.data.Place;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+
 import java.util.List;
 
 public class PlaceListActivity extends AppCompatActivity {
@@ -22,8 +25,8 @@ public class PlaceListActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_place_list);
 
+        adapter = new PlaceAdapter(this);
         recyclerView = findViewById(R.id.recyclerView);
-        adapter = new PlaceAdapter();
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
     }
@@ -47,10 +50,10 @@ public class PlaceListActivity extends AppCompatActivity {
         List<Place> placeList = App.db().collectDao().getPlaces();
         for(Place place: placeList){
             place.setTowerList(App.db().collectDao().getTowers(place.placeId));
-            if(place.endDate == null && place.towerList.size() > 0){ //Проставляем дату последней точки
-                place.endDate = place.towerList.get(place.towerList.size()-1).date;
-                App.db().collectDao().update(place);
-            }
+//            if(place.endDate == null && place.towerList.size() > 0){ //Проставляем дату последней точки
+//                place.endDate = place.towerList.get(place.towerList.size()-1).date;
+//                App.db().collectDao().update(place);
+//            }
         }
         adapter.clearItems();
         adapter.setItems(placeList);

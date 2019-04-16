@@ -17,7 +17,11 @@ public abstract class CollectDao {
 
     @Query("select * from place where placeId = :placeId")
     public abstract Place getPlace(Long placeId);
-/*
+
+    @Query("DELETE from place where placeId = :placeId")
+    public abstract void deletePlace(Long placeId);
+
+    /*
     @Query("select * from sessions where sessionId = :sessionId")
     public abstract Session getSessionBySession(Long sessionId);
 
@@ -40,11 +44,10 @@ public abstract class CollectDao {
     @Insert
     public abstract Long insert(Tower item);
 
+
+    @Query("DELETE from tower where placeId = :placeId")
+    public abstract void deleteTowers(Long placeId);
 /*
-
-    @Query("DELETE from sessions where sessionId = :sessionId")
-    public abstract void deleteSession(Long sessionId);
-
     @Insert
     public abstract Long insert(NfcStepDb item);
 

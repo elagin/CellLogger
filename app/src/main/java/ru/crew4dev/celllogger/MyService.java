@@ -63,9 +63,9 @@ public class MyService extends Service {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
         if (place != null) {
-            place.endDate = new Date();
-            App.db().collectDao().update(place);
-            Log.d(TAG, "update : " + place.toString());
+//            place.endDate = new Date();
+//            App.db().collectDao().update(place);
+//            Log.d(TAG, "update : " + place.toString());
             StringBuilder out = new StringBuilder();
             out.append(dateFullFormat.format(new Date()));
             out.append(" - MyService onDestroy");

@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">CellLogger</string>
     <string name="new_scan">Сканировать</string>
+    <string name="delete">Удалить</string>
 </resources>

@@ -174,9 +174,9 @@ public class TowerActivity extends AppCompatActivity {
 //        }, 0, 10000);
     }
 
-    private void loadData(){
+    private void loadData() {
         Log.d(TAG, "loadData");
-        if(place != null) {
+        if (place != null) {
             towerList.addAll(App.db().collectDao().getTowers(place.placeId));
             adapter.clearItems();
             adapter.setItems(towerList.getTowers());
@@ -204,6 +204,16 @@ public class TowerActivity extends AppCompatActivity {
 
     private void toStop() {
         stopService(new Intent(TowerActivity.this, MyService.class));
+        if (place != null) {
+            place.endDate = new Date();
+            place.setName(editPlaceName.getText().toString());
+            App.db().collectDao().update(place);
+            Log.d(TAG, "update : " + place.toString());
+//            StringBuilder out = new StringBuilder();
+//            out.append(dateFullFormat.format(new Date()));
+//            out.append(" - MyService onDestroy");
+//            writeToFile(out.toString());
+        }
     }
 
     private void checkPermissions() {
@@ -254,6 +264,12 @@ public class TowerActivity extends AppCompatActivity {
 //        registerReceiver(wifiReciever, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
         super.onResume();
         loadData();
+        if (place != null) {
+            if (place.endDate == null) {
+                buttonStart.setEnabled(false);
+                buttonStop.setEnabled(true);
+            }
+        }
     }
 
     class WifiScanReceiver extends BroadcastReceiver {
