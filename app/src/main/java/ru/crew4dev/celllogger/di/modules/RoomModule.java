@@ -32,4 +32,11 @@ public class RoomModule {
             database.execSQL("ALTER TABLE place ADD COLUMN name TEXT");
         }
     };
+    public static final Migration MIGRATION_2_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            Log.d("LocalDatabase", "migrate 1-2");
+            database.execSQL("ALTER TABLE tower ADD COLUMN endDate INTEGER");
+        }
+    };
 }

@@ -1,6 +1,7 @@
 package ru.crew4dev.celllogger.data;
 
 import java.util.Date;
+import java.util.Objects;
 
 import androidx.room.Entity;
 import androidx.room.Ignore;
@@ -14,6 +15,8 @@ public class Tower {
     public Long towerId;
     @TypeConverters({DateConverter.class})
     public Date date;
+    @TypeConverters({DateConverter.class})
+    public Date endDate;
     public Long placeId;
 
     public int cellId;
@@ -21,6 +24,9 @@ public class Tower {
     public int dbm;
     public int mcc;
     public int mnc;
+
+    @Ignore
+    private boolean isSelected = false;
 
     public Tower() {
     }
@@ -33,6 +39,14 @@ public class Tower {
         this.dbm = dbm;
         this.mcc = mcc;
         this.mnc = mnc;
+    }
+
+    public void setEndDate(Date endDate) {
+        this.endDate = endDate;
+    }
+
+    public Date getEndDate() {
+        return endDate;
     }
 
     public Long getTowerId() {
@@ -68,10 +82,30 @@ public class Tower {
     }
 
     @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Tower tower = (Tower) o;
+        return cellId == tower.cellId &&
+                lac == tower.lac &&
+                mcc == tower.mcc &&
+                mnc == tower.mnc;
+    }
+
+    public void setSelected(boolean selected) {
+        isSelected = selected;
+    }
+
+    public boolean isSelected() {
+        return isSelected;
+    }
+
+    @Override
     public String toString() {
         return "Tower{" +
                 "towerId=" + towerId +
-                ", startDate=" + date +
+                ", date=" + date +
+                ", endDate=" + endDate +
                 ", placeId=" + placeId +
                 ", cellId=" + cellId +
                 ", lac=" + lac +

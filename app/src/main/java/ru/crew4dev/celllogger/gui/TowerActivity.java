@@ -34,6 +34,8 @@ import java.util.TimerTask;
 
 import android.net.wifi.ScanResult;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -60,6 +62,7 @@ public class TowerActivity extends AppCompatActivity {
     private MyReceiver myReceiver;
     private TowerAdapter adapter;
     private TowerList towerList = new TowerList();
+    private Menu menu;
 
     WifiManager mainWifiObj;
     WifiScanReceiver wifiReciever;
@@ -105,8 +108,8 @@ public class TowerActivity extends AppCompatActivity {
                     int lac = intent.getIntExtra(MyService.LAC, 0);
                     int cell_id = intent.getIntExtra(MyService.CELL_ID, 0);
                     int dbm = intent.getIntExtra(MyService.DBM, 0);
-                    Tower tower = new Tower(cell_id, lac, dbm, 0, 0);
-                    Log.d(TAG, tower.toString());
+                    //Tower tower = new Tower(cell_id, lac, dbm, 0, 0);
+                    //Log.d(TAG, tower.toString());
                     loadData();
                     textViewUpdateTime.setText(Constants.timeFormat.format(new Date()));
                     StringBuilder current = new StringBuilder();
@@ -144,7 +147,7 @@ public class TowerActivity extends AppCompatActivity {
 //        });
 
         taskRecyclerView = findViewById(R.id.historyRecyclerView);
-        adapter = new TowerAdapter();
+        adapter = new TowerAdapter(this);
         taskRecyclerView.setAdapter(adapter);
         taskRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -270,6 +273,27 @@ public class TowerActivity extends AppCompatActivity {
                 buttonStop.setEnabled(true);
             }
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.tower_list_menu, menu);
+        this.menu = menu;
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        List<Long> selectedList = new ArrayList<>();
+        for (Tower tower : towerList.getTowers())
+            if (tower.isSelected())
+                selectedList.add(tower.towerId);
+        return super.onOptionsItemSelected(item);
+    }
+
+    public void enableActionMark(boolean value) {
+        menu.findItem(R.id.action_mark).setVisible(value);
     }
 
     class WifiScanReceiver extends BroadcastReceiver {

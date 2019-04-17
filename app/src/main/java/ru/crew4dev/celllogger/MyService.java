@@ -217,17 +217,24 @@ public class MyService extends Service {
                         intent.putExtra(CELL_ID, tower.getCellId());
                         intent.putExtra(DBM, tower.getDbm());
                         sendBroadcast(intent);
-                        if (lastTower == null || lastTower.getLac() != tower.getLac() || lastTower.getCellId() != tower.getCellId()) {
-                            lastTower = tower;
-                            if (!towers.isExistTower(tower)) {
-                                tower.placeId = place.placeId;
-                                towers.add(tower);
-                                App.db().collectDao().insert(tower);
-                                Log.d(TAG, "Insert " + tower.toString());
-                            } else {
-                                Log.d(TAG, "Exist tower");
+                        if (!tower.equals(lastTower)) {
+                            if (towers.size() > 0) {
+                                Tower prevTower = towers.getLast();
+                                prevTower.setEndDate(new Date());
+                                App.db().collectDao().update(prevTower);
                             }
+                            lastTower = tower;
+//                            if (!towers.isExistTower(tower)) {//todo Будет плохо, если опять вернемся в соту, например на обратной дороге.
+                            tower.placeId = place.placeId;
+                            towers.add(tower);
+                            tower.towerId = App.db().collectDao().insert(tower);
+                            Log.d(TAG, "Insert " + tower.toString());
+//                            } else {
+//                                Log.d(TAG, "Exist tower");
+//                            }
                         } else {
+                            lastTower.setEndDate(new Date());
+                            App.db().collectDao().update(lastTower);
                             Log.d(TAG, "Old tower");
                         }
                     }

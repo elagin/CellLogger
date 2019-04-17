@@ -6,6 +6,7 @@ import androidx.room.Room;
 import ru.crew4dev.celllogger.data.LocalDatabase;
 
 import static ru.crew4dev.celllogger.di.modules.RoomModule.MIGRATION_1_2;
+import static ru.crew4dev.celllogger.di.modules.RoomModule.MIGRATION_2_3;
 
 public class App extends Application {
     private static App instance;
@@ -26,6 +27,7 @@ public class App extends Application {
         mDb = Room.databaseBuilder(this, LocalDatabase.class, "local_db")
                 .allowMainThreadQueries()
                 .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_2_3)
                 .build();
     }
 }

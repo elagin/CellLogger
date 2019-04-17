@@ -44,6 +44,8 @@ public abstract class CollectDao {
     @Insert
     public abstract Long insert(Tower item);
 
+    @Update
+    public abstract void update(Tower item);
 
     @Query("DELETE from tower where placeId = :placeId")
     public abstract void deleteTowers(Long placeId);
