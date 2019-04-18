@@ -113,7 +113,7 @@ public class TowerActivity extends AppCompatActivity {
                     loadData();
                     textViewUpdateTime.setText(Constants.timeFormat.format(new Date()));
                     StringBuilder current = new StringBuilder();
-                    current.append("cellId: " + String.valueOf(cell_id));
+                    current.append("cId: " + String.valueOf(cell_id));
                     current.append(" lac: " + String.valueOf(lac));
                     current.append(" " + String.valueOf(dbm) + "dB");
                     currentTower.setText(current.toString());

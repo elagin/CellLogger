@@ -39,6 +39,7 @@ public class MyService extends Service {
 
     static final int SLEEP_MC = 5000;
     static final SimpleDateFormat dateFullFormat = new SimpleDateFormat("dd.MM.yy HH:mm");
+    static final SimpleDateFormat fileNameDdateFullFormat = new SimpleDateFormat("yy.MM.dd");
     private Tower lastTower;
     private Place place;
     private TowerList towers;
@@ -53,24 +54,18 @@ public class MyService extends Service {
         super.onCreate();
         Log.d(TAG, "onCreate");
         towers = new TowerList();
-        StringBuilder out = new StringBuilder();
-        out.append(dateFullFormat.format(new Date()));
-        out.append(" - MyService onCreate");
-        writeToFile(out.toString());
+        writeToFile(" - MyService onCreate");
     }
 
     public void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
-        if (place != null) {
+        writeToFile(" - MyService onDestroy");
+//        if (place != null) {
 //            place.endDate = new Date();
 //            App.db().collectDao().update(place);
 //            Log.d(TAG, "update : " + place.toString());
-            StringBuilder out = new StringBuilder();
-            out.append(dateFullFormat.format(new Date()));
-            out.append(" - MyService onDestroy");
-            writeToFile(out.toString());
-        }
+//        }
         if (myThread != null) {
             myThread.interrupt();
             Intent intent = new Intent();
@@ -88,6 +83,7 @@ public class MyService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand");
+        writeToFile(" - MyService onStartCommand");
         if (intent.hasExtra(PLACE_ID)) {
             place = App.db().collectDao().getPlace(intent.getLongExtra(PLACE_ID, 0));
         }
@@ -115,9 +111,9 @@ public class MyService extends Service {
                     cellObj.put("rssi", thisCell.getRssi());
                     //cellList.put(cellObj);
                 } catch (Exception e) {
+                    Log.d(TAG, new Date() + " \t" + e.getLocalizedMessage());
                 }
             }
-
         } else {
             List<CellInfo> infos = tel.getAllCellInfo();
             if (infos != null) {
@@ -168,13 +164,11 @@ public class MyService extends Service {
     private void saveTowerInfo(List<Tower> towerList) {
         for (Tower tower : towerList) {
             StringBuilder out = new StringBuilder();
-            out.append(dateFullFormat.format(tower.getDate()));
-            out.append(";");
             out.append(tower.getLac());
             out.append(";");
             out.append(tower.getCellId());
-            out.append("\n");
             writeToFile(out.toString());
+            Log.d(TAG, out.toString());
         }
     }
 
@@ -191,16 +185,30 @@ public class MyService extends Service {
                 File dir = new File(path);
                 if (!dir.exists())
                     dir.mkdir();
-                File file = new File(path, "log.txt");
+                File file = new File(path, fileNameDdateFullFormat.format(new Date()) + ".txt");
+                Long startSize = file.length();
                 FileOutputStream outputStream = new FileOutputStream(file, true);
-                outputStream.write(data.getBytes());
+                String writeData = dateFullFormat.format(new Date()) + ":" + data + "\n";
+                outputStream.write(writeData.getBytes());
                 outputStream.close();
+                Long endSize = file.length();
+                Log.d(TAG, "File diff is: " + (endSize - startSize));
             } catch (IOException e) {
                 Log.e("Exception", "File write failed: " + e.toString());
             }
+        } else {
+            Log.e(TAG, "is not ExternalStorageWritable");
         }
     }
 
+    private void createIntent(int lac, int cellId, int dbm){
+        Intent intent = new Intent();
+        intent.setAction(Constants.UPDATE_DATA);
+        intent.putExtra(LAC, lac);
+        intent.putExtra(CELL_ID, cellId);
+        intent.putExtra(DBM, dbm);
+        sendBroadcast(intent);
+    }
     public class MyThread extends Thread {
         @Override
         public void run() {
@@ -208,39 +216,40 @@ public class MyService extends Service {
             do {
                 try {
                     final List<Tower> towerList = getCellInfo();
-                    saveTowerInfo(towerList);
-                    for (Tower tower : towerList) {
-                        //Log.d(TAG, new Date() + " \t" + identityLte.getTac() + " \t" + identityLte.getCi());
-                        Intent intent = new Intent();
-                        intent.setAction(Constants.UPDATE_DATA);
-                        intent.putExtra(LAC, tower.getLac());
-                        intent.putExtra(CELL_ID, tower.getCellId());
-                        intent.putExtra(DBM, tower.getDbm());
-                        sendBroadcast(intent);
-                        if (!tower.equals(lastTower)) {
-                            if (towers.size() > 0) {
-                                Tower prevTower = towers.getLast();
-                                prevTower.setEndDate(new Date());
-                                App.db().collectDao().update(prevTower);
-                            }
-                            lastTower = tower;
+                    if (towerList.size() > 0) {
+                        saveTowerInfo(towerList);
+                        for (Tower tower : towerList) {
+                            //Log.d(TAG, new Date() + " \t" + identityLte.getTac() + " \t" + identityLte.getCi());
+                            createIntent(tower.getLac(), tower.getCellId(), tower.getDbm());
+                            if (!tower.equals(lastTower)) {
+                                if (towers.size() > 0) {
+                                    Tower prevTower = towers.getLast();
+                                    prevTower.setEndDate(new Date());
+                                    App.db().collectDao().update(prevTower);
+                                }
+                                lastTower = tower;
 //                            if (!towers.isExistTower(tower)) {//todo Будет плохо, если опять вернемся в соту, например на обратной дороге.
-                            tower.placeId = place.placeId;
-                            towers.add(tower);
-                            tower.towerId = App.db().collectDao().insert(tower);
-                            Log.d(TAG, "Insert " + tower.toString());
+                                tower.placeId = place.placeId;
+                                towers.add(tower);
+                                tower.towerId = App.db().collectDao().insert(tower);
+                                Log.d(TAG, "Insert " + tower.toString());
 //                            } else {
 //                                Log.d(TAG, "Exist tower");
 //                            }
-                        } else {
-                            lastTower.setEndDate(new Date());
-                            App.db().collectDao().update(lastTower);
-                            Log.d(TAG, "Old tower");
+                            } else {
+                                lastTower.setEndDate(new Date());
+                                App.db().collectDao().update(lastTower);
+                                Log.d(TAG, "Old tower");
+                            }
                         }
+                    } else {
+                        createIntent(0, 0, 0);
+                        writeToFile(" - MyService getCellInfo is empty");
                     }
                     Thread.sleep(SLEEP_MC);
                 } catch (InterruptedException e) {
                     isWork = false;
+                    writeToFile(" - MyService onDestroy");
                 }
             } while (isWork);
             stopSelf();

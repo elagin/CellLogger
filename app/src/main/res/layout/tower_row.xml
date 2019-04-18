@@ -14,6 +14,7 @@
         android:layout_height="wrap_content"
         android:paddingLeft="6dp"
         android:text="date"
+        app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
@@ -21,7 +22,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingLeft="6dp"
-        app:layout_constraintLeft_toRightOf="@+id/date" />
+        app:layout_constraintLeft_toRightOf="@+id/date"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/cellId"
@@ -29,7 +31,8 @@
         android:layout_height="wrap_content"
         android:paddingLeft="6dp"
         android:text="cellId:"
-        app:layout_constraintLeft_toRightOf="@+id/min_diff" />
+        app:layout_constraintLeft_toRightOf="@+id/min_diff"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/lac"
@@ -37,7 +40,8 @@
         android:layout_height="wrap_content"
         android:paddingLeft="6dp"
         android:text="lac:"
-        app:layout_constraintLeft_toRightOf="@+id/cellId" />
+        app:layout_constraintLeft_toRightOf="@+id/cellId"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/dbm"
@@ -46,6 +50,7 @@
         android:paddingLeft="6dp"
         android:text="dbm:"
         android:visibility="gone"
-        app:layout_constraintLeft_toRightOf="@+id/lac" />
+        app:layout_constraintLeft_toRightOf="@+id/lac"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

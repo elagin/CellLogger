@@ -11,7 +11,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingLeft="6dp"
-        android:text="TextView" />
+        android:text="TextView"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/textViewEndDate"
@@ -19,7 +21,8 @@
         android:layout_height="wrap_content"
         android:paddingLeft="6dp"
         android:text="TextView"
-        app:layout_constraintLeft_toRightOf="@+id/textViewStartDate" />
+        app:layout_constraintLeft_toRightOf="@+id/textViewStartDate"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/placeName"
@@ -27,8 +30,8 @@
         android:layout_height="wrap_content"
         android:paddingLeft="6dp"
         android:text="Имя"
-        app:layout_constraintTop_toBottomOf="@+id/textViewStartDate"
-        tools:layout_editor_absoluteX="10dp" />
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textViewStartDate" />
 
     <TextView
         android:id="@+id/textTowerCount"
