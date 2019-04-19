@@ -35,7 +35,6 @@ public abstract class CollectDao {
     @Update
     public abstract void update(Place item);
 
-
     @Query("select * from tower")
     public abstract List<Tower> getTowers();
 
@@ -56,6 +55,12 @@ public abstract class CollectDao {
 
     @Query("select * from tower_group")
     public abstract List<TowerGroup> getTowerGroups();
+
+    @Query("select * from tower_group where name = :name")
+    public abstract TowerGroup getTowerGroup(String name);
+
+    @Update
+    public abstract void update(TowerGroup item);
 
 /*
     @Insert

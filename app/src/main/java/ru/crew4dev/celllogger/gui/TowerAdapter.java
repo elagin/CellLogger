@@ -2,6 +2,8 @@ package ru.crew4dev.celllogger.gui;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Typeface;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -102,9 +104,17 @@ public class TowerAdapter extends RecyclerView.Adapter<TowerAdapter.TowerInfoVie
             cellId.setText("cellId: " + item.getCellId());
             lac.setText("lac: " + item.getLac());
             dbm.setText(item.getDbm() + "dB");
-            for(TowerGroup tg: towerGroups){
-                if(tg.towerList.contains(item.getUid()))
+            for (TowerGroup tg : towerGroups) {
+                if (tg.towerList.contains(item.getUid())) {
                     textInfo.setText(tg.name);
+                    //todo Сломалось когда добавил точки в рабочую группу вышек
+                    //textInfo.setVisibility(View.VISIBLE);
+                    //date.setTypeface(null, Typeface.BOLD);
+                    Log.d(TAG, tg.name);
+                } else {
+                    //textInfo.setVisibility(View.GONE);
+                    //date.setTypeface(null, Typeface.NORMAL);
+                }
             }
         }
     }

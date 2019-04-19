@@ -287,21 +287,39 @@ public class TowerActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-
-        SelectPlaceDialog cdd=new SelectPlaceDialog(this);
-        cdd.show();
+        SelectPlaceDialog selectPlaceDialog = new SelectPlaceDialog(this);
+        selectPlaceDialog.show();
         return super.onOptionsItemSelected(item);
     }
 
-    public void saveNewGroup(String name){
+    public void saveNewGroup(String name) {
         Set<String> selectedList = new LinkedHashSet<>();
+        List<TowerGroup> oldGroups = App.db().collectDao().getTowerGroups();
         for (Tower tower : towerList.getTowers())
-            if (tower.isSelected())
-                selectedList.add(tower.getUid());
-        TowerGroup group = new TowerGroup();
-        group.name = name;
-        group.towerList = ArrayConverter.fromArrayList(selectedList);
-        App.db().collectDao().insert(group);
+            if (tower.isSelected()) {
+                if (oldGroups.size() > 0) {
+                    for (TowerGroup olGroup : oldGroups) {
+                        if (!olGroup.towerList.contains(tower.getUid()))
+                            selectedList.add(tower.getUid());
+                        else
+                            Log.d(TAG, "Exist " + tower.getUid() + " into " + olGroup.name);
+                    }
+                } else {
+                    selectedList.add(tower.getUid());
+                }
+            }
+        if (selectedList.size() > 0) {
+            TowerGroup tg = App.db().collectDao().getTowerGroup(name);
+            if (tg != null) {
+                tg.addTower(selectedList);
+                App.db().collectDao().update(tg);
+            } else {
+                TowerGroup group = new TowerGroup();
+                group.name = name;
+                group.towerList = ArrayConverter.fromArrayList(selectedList);
+                App.db().collectDao().insert(group);
+            }
+        }
     }
 
     public void enableActionMark(boolean value) {

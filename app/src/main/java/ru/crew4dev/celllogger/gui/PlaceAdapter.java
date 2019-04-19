@@ -2,6 +2,7 @@ package ru.crew4dev.celllogger.gui;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.view.ContextMenu;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;

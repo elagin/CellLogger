@@ -41,8 +41,14 @@ public class PlaceListActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        Intent intent = new Intent(this, TowerActivity.class);
-        startActivity(intent, null);
+        switch (item.getItemId()) {
+            case R.id.action_save:
+                startActivity(new Intent(this, TowerActivity.class), null);
+                break;
+            case R.id.action_show_groups:
+                startActivity(new Intent(this, TowerGroupActivity.class), null);
+                break;
+        }
         return super.onOptionsItemSelected(item);
     }
 

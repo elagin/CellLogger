@@ -3,15 +3,15 @@ package ru.crew4dev.celllogger.db.converters;
 import org.json.JSONArray;
 import org.json.JSONException;
 
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import androidx.room.TypeConverter;
 
 public class ArrayConverter {
     @TypeConverter
-    public static ArrayList<String> fromString(String value) {
-        ArrayList<String> listdata = new ArrayList<>();
+    public static Set<String> fromString(String value) {
+        Set<String> listdata = new LinkedHashSet<>();
         try {
             JSONArray array = new JSONArray(value);
             if (array != null) {
