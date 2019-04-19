@@ -7,6 +7,7 @@ import ru.crew4dev.celllogger.data.LocalDatabase;
 
 import static ru.crew4dev.celllogger.di.modules.RoomModule.MIGRATION_1_2;
 import static ru.crew4dev.celllogger.di.modules.RoomModule.MIGRATION_2_3;
+import static ru.crew4dev.celllogger.di.modules.RoomModule.MIGRATION_3_4;
 
 public class App extends Application {
     private static App instance;
@@ -28,6 +29,7 @@ public class App extends Application {
                 .allowMainThreadQueries()
                 .addMigrations(MIGRATION_1_2)
                 .addMigrations(MIGRATION_2_3)
+                .addMigrations(MIGRATION_3_4)
                 .build();
     }
 }

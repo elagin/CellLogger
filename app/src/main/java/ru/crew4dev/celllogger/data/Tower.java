@@ -114,4 +114,16 @@ public class Tower {
                 ", mnc=" + mnc +
                 '}';
     }
+
+    public String getUid(){
+        StringBuilder sb = new StringBuilder();
+        sb.append(this.mcc);
+        sb.append(";");
+        sb.append(this.mnc);
+        sb.append(";");
+        sb.append(this.lac);
+        sb.append(";");
+        sb.append(this.cellId);
+        return sb.toString();
+    }
 }

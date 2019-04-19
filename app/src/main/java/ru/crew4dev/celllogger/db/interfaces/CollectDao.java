@@ -6,6 +6,7 @@ import androidx.room.Query;
 import androidx.room.Update;
 import ru.crew4dev.celllogger.data.Place;
 import ru.crew4dev.celllogger.data.Tower;
+import ru.crew4dev.celllogger.data.TowerGroup;
 
 import java.util.List;
 
@@ -49,6 +50,13 @@ public abstract class CollectDao {
 
     @Query("DELETE from tower where placeId = :placeId")
     public abstract void deleteTowers(Long placeId);
+
+    @Insert
+    public abstract Long insert(TowerGroup item);
+
+    @Query("select * from tower_group")
+    public abstract List<TowerGroup> getTowerGroups();
+
 /*
     @Insert
     public abstract Long insert(NfcStepDb item);

@@ -12,7 +12,10 @@ import ru.crew4dev.celllogger.MyService;
 import ru.crew4dev.celllogger.R;
 import ru.crew4dev.celllogger.data.Place;
 import ru.crew4dev.celllogger.data.Tower;
+import ru.crew4dev.celllogger.data.TowerGroup;
 import ru.crew4dev.celllogger.data.TowerList;
+import ru.crew4dev.celllogger.db.converters.ArrayConverter;
+import ru.crew4dev.celllogger.gui.dialogs.SelectPlaceDialog;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -26,11 +29,10 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
 
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.Set;
 
 import android.net.wifi.ScanResult;
 import android.util.Log;
@@ -285,11 +287,21 @@ public class TowerActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        List<Long> selectedList = new ArrayList<>();
+
+        SelectPlaceDialog cdd=new SelectPlaceDialog(this);
+        cdd.show();
+        return super.onOptionsItemSelected(item);
+    }
+
+    public void saveNewGroup(String name){
+        Set<String> selectedList = new LinkedHashSet<>();
         for (Tower tower : towerList.getTowers())
             if (tower.isSelected())
-                selectedList.add(tower.towerId);
-        return super.onOptionsItemSelected(item);
+                selectedList.add(tower.getUid());
+        TowerGroup group = new TowerGroup();
+        group.name = name;
+        group.towerList = ArrayConverter.fromArrayList(selectedList);
+        App.db().collectDao().insert(group);
     }
 
     public void enableActionMark(boolean value) {

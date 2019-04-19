@@ -10,10 +10,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -22,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import ru.crew4dev.celllogger.App;
 import ru.crew4dev.celllogger.Constants;
 import ru.crew4dev.celllogger.R;
+import ru.crew4dev.celllogger.Tools;
 import ru.crew4dev.celllogger.data.Place;
 import ru.crew4dev.celllogger.gui.modeles.interfaces.Delete;
 
@@ -96,10 +95,9 @@ public class PlaceAdapter extends RecyclerView.Adapter<PlaceAdapter.PlaceViewHol
         }
 
         void bind(Place item) {
-            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm-dd.MM", Locale.getDefault());
-            startDate.setText(sdf.format(item.getStartDate()));
+            startDate.setText(Tools.getDate(item.getStartDate()));
             if (item.getEndDate() != null)
-                endDate.setText(sdf.format(item.getEndDate()));
+                endDate.setText(Tools.getDate(item.getEndDate()));
             else
                 endDate.setText("Не известно");
             textTowerCount.setText("Башни: " + String.valueOf(item.towerList.size()));

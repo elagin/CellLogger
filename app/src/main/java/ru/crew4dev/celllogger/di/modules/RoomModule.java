@@ -35,8 +35,15 @@ public class RoomModule {
     public static final Migration MIGRATION_2_3 = new Migration(2, 3) {
         @Override
         public void migrate(SupportSQLiteDatabase database) {
-            Log.d("LocalDatabase", "migrate 1-2");
+            Log.d("LocalDatabase", "migrate 2-3");
             database.execSQL("ALTER TABLE tower ADD COLUMN endDate INTEGER");
+        }
+    };
+    public static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(SupportSQLiteDatabase database) {
+            Log.d("LocalDatabase", "migrate 3-4");
+            database.execSQL("CREATE TABLE IF NOT EXISTS tower_group (towerGroupId INTEGER, name TEXT, towerList TEXT ,PRIMARY KEY(towerGroupId))");
         }
     };
 }

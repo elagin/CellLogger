@@ -7,16 +7,17 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import ru.crew4dev.celllogger.App;
 import ru.crew4dev.celllogger.R;
+import ru.crew4dev.celllogger.Tools;
 import ru.crew4dev.celllogger.data.Tower;
+import ru.crew4dev.celllogger.data.TowerGroup;
 import ru.crew4dev.celllogger.data.TowerList;
 
 public class TowerAdapter extends RecyclerView.Adapter<TowerAdapter.TowerInfoViewHolder> {
@@ -74,6 +75,9 @@ public class TowerAdapter extends RecyclerView.Adapter<TowerAdapter.TowerInfoVie
         private TextView cellId;
         private TextView lac;
         private TextView dbm;
+        private TextView textInfo;
+
+        private List<TowerGroup> towerGroups;
 
         public TowerInfoViewHolder(final @NonNull View itemView) {
             super(itemView);
@@ -83,20 +87,25 @@ public class TowerAdapter extends RecyclerView.Adapter<TowerAdapter.TowerInfoVie
             cellId = itemView.findViewById(R.id.cellId);
             lac = itemView.findViewById(R.id.lac);
             dbm = itemView.findViewById(R.id.dbm);
+            textInfo = itemView.findViewById(R.id.textInfo);
+            towerGroups = App.db().collectDao().getTowerGroups();
         }
 
         void bind(int position) {
             Tower item = towers.get(position);
-            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm-dd.MM", Locale.getDefault());
-            date.setText(sdf.format(item.getDate()));
+            date.setText(Tools.getDate(item.getDate()));
             if (item.getEndDate() != null) {
                 long diffInMillies = item.getEndDate().getTime() - item.getDate().getTime();
                 long diff = TimeUnit.MINUTES.convert(diffInMillies, TimeUnit.MILLISECONDS);
                 min_diff.setText(String.valueOf(diff));
             }
-            cellId.setText("cellId: " + String.valueOf(item.getCellId()));
-            lac.setText("lac: " + String.valueOf(item.getLac()));
-            dbm.setText(String.valueOf(item.getDbm()) + "dB");
+            cellId.setText("cellId: " + item.getCellId());
+            lac.setText("lac: " + item.getLac());
+            dbm.setText(item.getDbm() + "dB");
+            for(TowerGroup tg: towerGroups){
+                if(tg.towerList.contains(item.getUid()))
+                    textInfo.setText(tg.name);
+            }
         }
     }
 }
