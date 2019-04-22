@@ -98,7 +98,6 @@ public class TowerAdapter extends RecyclerView.Adapter<TowerAdapter.TowerInfoVie
             Tower item = towers.get(position);
             date.setText(Tools.getDate(item.getDate()));
             SimpleDateFormat tf = new SimpleDateFormat("HH:mm:ss");
-            Log.d(TAG, tf.format(item.getDate()) + " - " + tf.format(item.getEndDate()));
             if (item.getEndDate() != null) {
                 long diffInMillies = item.getEndDate().getTime() - item.getDate().getTime();
                 long diffMin = TimeUnit.MINUTES.convert(diffInMillies, TimeUnit.MILLISECONDS);

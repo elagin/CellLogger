@@ -100,6 +100,10 @@ public class Tower {
         return isSelected;
     }
 
+    public String getInfo(){
+        return "cellId=" + cellId + " lac=" + lac;
+    }
+
     @Override
     public String toString() {
         return "Tower{" +

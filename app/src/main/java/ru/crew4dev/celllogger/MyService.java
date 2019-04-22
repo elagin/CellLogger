@@ -1,5 +1,6 @@
 package ru.crew4dev.celllogger;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -15,9 +16,8 @@ import android.telephony.CellSignalStrengthGsm;
 import android.telephony.CellSignalStrengthLte;
 import android.telephony.NeighboringCellInfo;
 import android.telephony.TelephonyManager;
+import android.telephony.gsm.GsmCellLocation;
 import android.util.Log;
-
-import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -92,59 +92,89 @@ public class MyService extends Service {
         return super.onStartCommand(intent, flags, startId);
     }
 
+    private List<Tower> getNeighboring(TelephonyManager tel) {
+        List<Tower> list = new ArrayList<>();
+        @SuppressLint("MissingPermission") List<NeighboringCellInfo> neighCells = tel.getNeighboringCellInfo();
+        if (neighCells != null && neighCells.size() > 0) {
+            String networkOperator = tel.getNetworkOperator();
+            String mcc = networkOperator.substring(0, 3);
+            String mnc = networkOperator.substring(3);
+            for (int i = 0; i < neighCells.size(); i++) {
+                try {
+                    NeighboringCellInfo thisCell = neighCells.get(i);
+                    if (thisCell.getCid() != Integer.MAX_VALUE && thisCell.getLac() != Integer.MAX_VALUE) {
+                        Log.d(TAG, new Date() + " \t" + thisCell.getLac() + " \t" + thisCell.getCid());
+                        Tower tower = new Tower(thisCell.getCid(), thisCell.getLac(), (-113 + 2 * thisCell.getRssi()), Integer.valueOf(mcc), Integer.valueOf(mnc));
+                        list.add(tower);
+                        saveInfo(tower, "getNeighboring");
+                    }
+                } catch (Exception e) {
+                    Log.d(TAG, new Date() + " \t" + e.getLocalizedMessage());
+                }
+            }
+        }
+        return list;
+    }
+
+    private void saveInfo(Tower tower, String func){
+        StringBuilder out = new StringBuilder();
+        out.append(tower.getCellId());
+        out.append(";");
+        out.append(tower.getLac());
+        out.append(";");
+        out.append(func);
+        writeToFile(out.toString());
+    }
+
     public List<Tower> getCellInfo() {
         List<Tower> towerList = new ArrayList<>();
         TelephonyManager tel = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 //        int phoneTypeInt = tel.getPhoneType();
 //        String phoneType = phoneTypeInt == TelephonyManager.PHONE_TYPE_GSM ? "gsm" : phoneType;
 //        phoneType = phoneTypeInt == TelephonyManager.PHONE_TYPE_CDMA ? "cdma" : phoneType;
-
         //from Android M up must use getAllCellInfo
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            List<NeighboringCellInfo> neighCells = tel.getNeighboringCellInfo();
-            for (int i = 0; i < neighCells.size(); i++) {
-                try {
-                    JSONObject cellObj = new JSONObject();
-                    NeighboringCellInfo thisCell = neighCells.get(i);
-                    cellObj.put("cellId", thisCell.getCid());
-                    cellObj.put("lac", thisCell.getLac());
-                    cellObj.put("rssi", thisCell.getRssi());
-                    //cellList.put(cellObj);
-                } catch (Exception e) {
-                    Log.d(TAG, new Date() + " \t" + e.getLocalizedMessage());
-                }
-            }
+            towerList.addAll(getNeighboring(tel));
+//            List<NeighboringCellInfo> neighCells = tel.getNeighboringCellInfo();
+//            for (int i = 0; i < neighCells.size(); i++) {
+//                try {
+//                    JSONObject cellObj = new JSONObject();
+//                    NeighboringCellInfo thisCell = neighCells.get(i);
+//                    cellObj.put("cellId", thisCell.getCid());
+//                    cellObj.put("lac", thisCell.getLac());
+//                    cellObj.put("rssi", thisCell.getRssi());
+//                    //cellList.put(cellObj);
+//                } catch (Exception e) {
+//                    Log.d(TAG, new Date() + " \t" + e.getLocalizedMessage());
+//                }
+//            }
         } else {
-            List<CellInfo> infos = tel.getAllCellInfo();
+            @SuppressLint("MissingPermission") List<CellInfo> infos = tel.getAllCellInfo();
             if (infos != null) {
                 for (int i = 0; i < infos.size(); ++i) {
                     try {
                         CellInfo info = infos.get(i);
+                        Tower tower = null;
                         if (info instanceof CellInfoGsm) {
-                            CellSignalStrengthGsm gsm = ((CellInfoGsm) info).getCellSignalStrength();
-                            CellIdentityGsm identityGsm = ((CellInfoGsm) info).getCellIdentity();
-                            if (identityGsm.getCid() != Integer.MAX_VALUE && identityGsm.getLac() != Integer.MAX_VALUE) {
-                                Tower tower = new Tower(identityGsm.getCid(), identityGsm.getLac(), gsm.getDbm(), identityGsm.getMcc(), identityGsm.getMnc());
-                                lastTower = tower;
-                                towerList.add(tower);
-                                Log.d(TAG, new Date() + " \t" + tower.toString());
-                            }
+                            tower = getCellInfoGsm((CellInfoGsm) info);
                         } else if (info instanceof CellInfoLte) {
-                            CellSignalStrengthLte lte = ((CellInfoLte) info).getCellSignalStrength();
-                            CellIdentityLte identityLte = ((CellInfoLte) info).getCellIdentity();
-                            if (identityLte.getCi() != Integer.MAX_VALUE && identityLte.getTac() != Integer.MAX_VALUE) {
-                                Log.d(TAG, new Date() + " \t" + identityLte.getTac() + " \t" + identityLte.getCi());
-                                Tower tower = new Tower(identityLte.getCi(), identityLte.getTac(), lte.getDbm(), identityLte.getMcc(), identityLte.getMnc());
-                                towerList.add(tower);
-                            }
+                            tower = getLteCell((CellInfoLte) info);
+                        }
+                        if (tower != null) {
+                            towerList.add(tower);
                         }
                     } catch (Exception ex) {
                         Log.d(TAG, new Date() + " \t" + ex.getLocalizedMessage());
                     }
                 }
-                //scanInfos.add(scanInfo);
             } else {
                 Log.d(TAG, new Date() + " \t" + "getAllCellInfo return null");
+                Tower tower = getGsmCellLocation(tel);
+                if (tower != null) {
+                    towerList.add(tower);
+                } else {
+                    towerList.addAll(getNeighboring(tel));
+                }
             }
             //Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + context.getApplicationInfo().processName;
         }
@@ -159,6 +189,46 @@ public class MyService extends Service {
 //            final String subscriptionInfoNumber = subscriptionInfo.getNumber();
 //        }
         return towerList;
+    }
+
+    private Tower getCellInfoGsm(CellInfoGsm info) {
+        CellSignalStrengthGsm gsm = info.getCellSignalStrength();
+        CellIdentityGsm identityGsm = info.getCellIdentity();
+        Log.d(TAG, "getLteCell:" + identityGsm.getCid() + " " + identityGsm.getLac());
+        if (identityGsm.getCid() != Integer.MAX_VALUE && identityGsm.getLac() != Integer.MAX_VALUE) {
+            Tower tower = new Tower(identityGsm.getCid(), identityGsm.getLac(), gsm.getDbm(), identityGsm.getMcc(), identityGsm.getMnc());
+            saveInfo(tower, "getCellInfoGsm");
+            return tower;
+        }
+        return null;
+    }
+
+    private Tower getLteCell(CellInfoLte info) {
+        CellSignalStrengthLte lte = info.getCellSignalStrength();
+        CellIdentityLte identityLte = info.getCellIdentity();
+        Log.d(TAG, "getLteCell:" + identityLte.getTac() + " " + identityLte.getCi());
+        if (identityLte.getCi() != Integer.MAX_VALUE && identityLte.getTac() != Integer.MAX_VALUE) {
+            Tower tower = new Tower(identityLte.getCi(), identityLte.getTac(), lte.getDbm(), identityLte.getMcc(), identityLte.getMnc());
+            saveInfo(tower, "getLteCell");
+            return tower;
+        }
+        return null;
+    }
+
+    private Tower getGsmCellLocation(TelephonyManager tel) {
+        @SuppressLint("MissingPermission") GsmCellLocation cellLocation = (GsmCellLocation) tel.getCellLocation();
+        if (cellLocation != null) {
+            Log.d(TAG, "getGsmCellLocation:" + cellLocation.getCid() + " " + cellLocation.getLac());
+            if (cellLocation.getCid() != -1 && cellLocation.getLac() != -1) {
+                String networkOperator = tel.getNetworkOperator();
+                String mcc = networkOperator.substring(0, 3);
+                String mnc = networkOperator.substring(3);
+                Tower tower = new Tower(cellLocation.getCid(), cellLocation.getLac(), -1, Integer.valueOf(mcc), Integer.valueOf(mnc));
+                saveInfo(tower, "getGsmCellLocation");
+                return tower;
+            }
+        }
+        return null;
     }
 
     private void saveTowerInfo(List<Tower> towerList) {
@@ -188,11 +258,11 @@ public class MyService extends Service {
                 File file = new File(path, fileNameDdateFullFormat.format(new Date()) + ".txt");
                 Long startSize = file.length();
                 FileOutputStream outputStream = new FileOutputStream(file, true);
-                String writeData = dateFullFormat.format(new Date()) + ":" + data + "\n";
+                String writeData = dateFullFormat.format(new Date()) + ";" + data + "\n";
                 outputStream.write(writeData.getBytes());
                 outputStream.close();
                 Long endSize = file.length();
-                Log.d(TAG, "File diff is: " + (endSize - startSize));
+                //Log.d(TAG, "File diff is: " + (endSize - startSize));
             } catch (IOException e) {
                 Log.e("Exception", "File write failed: " + e.toString());
             }
@@ -218,7 +288,7 @@ public class MyService extends Service {
                 try {
                     final List<Tower> towerList = getCellInfo();
                     if (towerList.size() > 0) {
-                        saveTowerInfo(towerList);
+                        //saveTowerInfo(towerList);
                         for (Tower tower : towerList) {
                             //Log.d(TAG, new Date() + " \t" + identityLte.getTac() + " \t" + identityLte.getCi());
                             createIntent(tower.getLac(), tower.getCellId(), tower.getDbm());
