@@ -151,7 +151,10 @@ public class TowerActivity extends AppCompatActivity {
         taskRecyclerView = findViewById(R.id.historyRecyclerView);
         adapter = new TowerAdapter(this);
         taskRecyclerView.setAdapter(adapter);
-        taskRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        final LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
+        linearLayoutManager.setReverseLayout(true);
+        linearLayoutManager.setStackFromEnd(true);
+        taskRecyclerView.setLayoutManager(linearLayoutManager);
 
         textViewUpdateTime = findViewById(R.id.textViewUpdateTime);
         currentTower = findViewById(R.id.currentTower);
@@ -244,11 +247,7 @@ public class TowerActivity extends AppCompatActivity {
         }
     }
 
-    private void getWifi() {
-        WifiManager wifiMgr = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
-        String name = wifiInfo.getSSID();
-    }
+
 
 //        final SubscriptionManager subscriptionManager = SubscriptionManager.from(this);
 //        final List<SubscriptionInfo> activeSubscriptionInfoList = subscriptionManager.getActiveSubscriptionInfoList();

@@ -4,6 +4,9 @@ import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.net.wifi.ScanResult;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Environment;
 import android.os.IBinder;
@@ -25,12 +28,15 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import ru.crew4dev.celllogger.data.Place;
 import ru.crew4dev.celllogger.data.Tower;
 import ru.crew4dev.celllogger.data.TowerList;
 
+import static android.net.wifi.WifiManager.WIFI_STATE_DISABLED;
 import static ru.crew4dev.celllogger.Constants.PLACE_ID;
 import static ru.crew4dev.celllogger.Constants.WORK_DONE;
 
@@ -116,7 +122,7 @@ public class MyService extends Service {
         return list;
     }
 
-    private void saveInfo(Tower tower, String func){
+    private void saveInfo(Tower tower, String func) {
         StringBuilder out = new StringBuilder();
         out.append(tower.getCellId());
         out.append(";");
@@ -135,19 +141,6 @@ public class MyService extends Service {
         //from Android M up must use getAllCellInfo
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             towerList.addAll(getNeighboring(tel));
-//            List<NeighboringCellInfo> neighCells = tel.getNeighboringCellInfo();
-//            for (int i = 0; i < neighCells.size(); i++) {
-//                try {
-//                    JSONObject cellObj = new JSONObject();
-//                    NeighboringCellInfo thisCell = neighCells.get(i);
-//                    cellObj.put("cellId", thisCell.getCid());
-//                    cellObj.put("lac", thisCell.getLac());
-//                    cellObj.put("rssi", thisCell.getRssi());
-//                    //cellList.put(cellObj);
-//                } catch (Exception e) {
-//                    Log.d(TAG, new Date() + " \t" + e.getLocalizedMessage());
-//                }
-//            }
         } else {
             @SuppressLint("MissingPermission") List<CellInfo> infos = tel.getAllCellInfo();
             if (infos != null) {
@@ -287,6 +280,7 @@ public class MyService extends Service {
             do {
                 try {
                     final List<Tower> towerList = getCellInfo();
+                    getWifi();
                     if (towerList.size() > 0) {
                         //saveTowerInfo(towerList);
                         for (Tower tower : towerList) {
@@ -321,6 +315,34 @@ public class MyService extends Service {
                 }
             } while (isWork);
             stopSelf();
+        }
+    }
+
+    private void getWifi() {
+        WifiManager wifiMgr = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (wifiMgr.getWifiState() == WIFI_STATE_DISABLED) {
+            Set<String> names = new LinkedHashSet<>();
+            List<ScanResult> wifiList = wifiMgr.getScanResults();
+            List<ScanResult> resultsList = new ArrayList<>();
+            for (ScanResult item : wifiList) {
+                if (names.size() > 0) {
+                    if (!names.contains(item.BSSID)) {
+                        names.add(item.BSSID);
+                        resultsList.add(item);
+                    }
+                } else {
+                    names.add(item.BSSID);
+                    resultsList.add(item);
+                }
+            }
+            for (ScanResult resItem : resultsList) {
+                writeToFile("WIFI;" + resItem.BSSID + " - " + resItem.SSID);
+                Log.d(TAG, resItem.SSID);
+            }
+        } else {
+            WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
+            String name = wifiInfo.getSSID();
+            Log.d(TAG, "Connect to: " + name + "" + wifiInfo.getBSSID());
         }
     }
 
