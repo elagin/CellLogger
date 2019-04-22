@@ -107,13 +107,12 @@ public class TowerAdapter extends RecyclerView.Adapter<TowerAdapter.TowerInfoVie
             for (TowerGroup tg : towerGroups) {
                 if (tg.towerList.contains(item.getUid())) {
                     textInfo.setText(tg.name);
-                    //todo Сломалось когда добавил точки в рабочую группу вышек
-                    //textInfo.setVisibility(View.VISIBLE);
-                    //date.setTypeface(null, Typeface.BOLD);
-                    Log.d(TAG, tg.name);
+                    textInfo.setVisibility(View.VISIBLE);
+                    break;
                 } else {
-                    //textInfo.setVisibility(View.GONE);
-                    //date.setTypeface(null, Typeface.NORMAL);
+                    textInfo.setText("");
+                    textInfo.setVisibility(View.GONE);
+                    Log.d(TAG, position + " cellId: " + item.getCellId());
                 }
             }
         }
