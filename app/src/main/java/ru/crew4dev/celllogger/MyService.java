@@ -201,7 +201,7 @@ public class MyService extends Service {
         }
     }
 
-    private void createIntent(int lac, int cellId, int dbm){
+    private void createIntent(int lac, int cellId, int dbm) {
         Intent intent = new Intent();
         intent.setAction(Constants.UPDATE_DATA);
         intent.putExtra(LAC, lac);
@@ -209,6 +209,7 @@ public class MyService extends Service {
         intent.putExtra(DBM, dbm);
         sendBroadcast(intent);
     }
+
     public class MyThread extends Thread {
         @Override
         public void run() {
@@ -222,11 +223,7 @@ public class MyService extends Service {
                             //Log.d(TAG, new Date() + " \t" + identityLte.getTac() + " \t" + identityLte.getCi());
                             createIntent(tower.getLac(), tower.getCellId(), tower.getDbm());
                             if (!tower.equals(lastTower)) {
-                                if (towers.size() > 0) {
-                                    Tower prevTower = towers.getLast();
-                                    prevTower.setEndDate(new Date());
-                                    App.db().collectDao().update(prevTower);
-                                }
+                                closePrevTower();
                                 lastTower = tower;
 //                            if (!towers.isExistTower(tower)) {//todo Будет плохо, если опять вернемся в соту, например на обратной дороге.
                                 tower.placeId = place.placeId;
@@ -244,6 +241,7 @@ public class MyService extends Service {
                         }
                     } else {
                         createIntent(0, 0, 0);
+                        closePrevTower();
                         writeToFile(" - MyService getCellInfo is empty");
                     }
                     Thread.sleep(SLEEP_MC);
@@ -253,6 +251,15 @@ public class MyService extends Service {
                 }
             } while (isWork);
             stopSelf();
+        }
+    }
+
+    //Из предыдущей точки мы точно выехали
+    private void closePrevTower() {
+        if (towers.size() > 0) {
+            Tower prevTower = towers.getLast();
+            prevTower.setEndDate(new Date());
+            App.db().collectDao().update(prevTower);
         }
     }
 }

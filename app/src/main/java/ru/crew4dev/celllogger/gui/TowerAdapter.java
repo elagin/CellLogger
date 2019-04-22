@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -96,10 +97,14 @@ public class TowerAdapter extends RecyclerView.Adapter<TowerAdapter.TowerInfoVie
         void bind(int position) {
             Tower item = towers.get(position);
             date.setText(Tools.getDate(item.getDate()));
+            SimpleDateFormat tf = new SimpleDateFormat("HH:mm:ss");
+            Log.d(TAG, tf.format(item.getDate()) + " - " + tf.format(item.getEndDate()));
             if (item.getEndDate() != null) {
                 long diffInMillies = item.getEndDate().getTime() - item.getDate().getTime();
-                long diff = TimeUnit.MINUTES.convert(diffInMillies, TimeUnit.MILLISECONDS);
-                min_diff.setText(String.valueOf(diff));
+                long diffMin = TimeUnit.MINUTES.convert(diffInMillies, TimeUnit.MILLISECONDS);
+                long diffSec = TimeUnit.SECONDS.convert(diffInMillies, TimeUnit.MILLISECONDS);
+                diffSec = diffSec - (diffMin* 60);
+                min_diff.setText(diffMin + ":" + diffSec);
             }
             cellId.setText("cellId: " + item.getCellId());
             lac.setText("lac: " + item.getLac());
@@ -112,7 +117,7 @@ public class TowerAdapter extends RecyclerView.Adapter<TowerAdapter.TowerInfoVie
                 } else {
                     textInfo.setText("");
                     textInfo.setVisibility(View.GONE);
-                    Log.d(TAG, position + " cellId: " + item.getCellId());
+                    Log.d(TAG, "cellId: " + item.getCellId());
                 }
             }
         }
