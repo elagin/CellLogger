@@ -31,6 +31,8 @@ import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import ru.crew4dev.celllogger.data.Place;
 import ru.crew4dev.celllogger.data.Tower;
@@ -41,7 +43,7 @@ import static ru.crew4dev.celllogger.Constants.PLACE_ID;
 import static ru.crew4dev.celllogger.Constants.WORK_DONE;
 
 public class MyService extends Service {
-    final static String TAG = "MyService";
+    final static String TAG = "celllogger.MyService";
 
     static final int SLEEP_MC = 5000;
     static final SimpleDateFormat dateFullFormat = new SimpleDateFormat("dd.MM.yy HH:mm");
@@ -50,7 +52,8 @@ public class MyService extends Service {
     private Place place;
     private TowerList towers;
 
-    private MyThread myThread = null;
+    private Timer mTimer;
+    private MyTimerTask mMyTimerTask;
 
     public static final String LAC = "LAC";
     public static final String CELL_ID = "CELL_ID";
@@ -64,21 +67,21 @@ public class MyService extends Service {
     }
 
     public void onDestroy() {
-        super.onDestroy();
         Log.d(TAG, "onDestroy");
         writeToFile(" - MyService onDestroy");
+        stopTimer();
 //        if (place != null) {
 //            place.endDate = new Date();
 //            App.db().collectDao().update(place);
 //            Log.d(TAG, "update : " + place.toString());
 //        }
-        if (myThread != null) {
-            myThread.interrupt();
+        if (mTimer != null) {
+            writeToFile(" - MyService WORK_DONE");
             Intent intent = new Intent();
             intent.setAction(WORK_DONE);
             sendBroadcast(intent);
-            myThread = null;
         }
+        super.onDestroy();
     }
 
     @Override
@@ -93,8 +96,7 @@ public class MyService extends Service {
         if (intent.hasExtra(PLACE_ID)) {
             place = App.db().collectDao().getPlace(intent.getLongExtra(PLACE_ID, 0));
         }
-        myThread = new MyThread();
-        myThread.start();
+        startTimer();
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -115,7 +117,7 @@ public class MyService extends Service {
                         saveInfo(tower, "getNeighboring");
                     }
                 } catch (Exception e) {
-                    Log.d(TAG, new Date() + " \t" + e.getLocalizedMessage());
+                    Log.e(TAG, e.toString());
                 }
             }
         }
@@ -157,7 +159,7 @@ public class MyService extends Service {
                             towerList.add(tower);
                         }
                     } catch (Exception ex) {
-                        Log.d(TAG, new Date() + " \t" + ex.getLocalizedMessage());
+                        Log.d(TAG,ex.toString());
                     }
                 }
             } else {
@@ -273,48 +275,44 @@ public class MyService extends Service {
         sendBroadcast(intent);
     }
 
-    public class MyThread extends Thread {
+    class MyTimerTask extends TimerTask {
         @Override
         public void run() {
-            boolean isWork = true;
-            do {
-                try {
-                    final List<Tower> towerList = getCellInfo();
-                    getWifi();
-                    if (towerList.size() > 0) {
-                        //saveTowerInfo(towerList);
-                        for (Tower tower : towerList) {
-                            //Log.d(TAG, new Date() + " \t" + identityLte.getTac() + " \t" + identityLte.getCi());
-                            createIntent(tower.getLac(), tower.getCellId(), tower.getDbm());
-                            if (!tower.equals(lastTower)) {
-                                closePrevTower();
-                                lastTower = tower;
+            try {
+                final List<Tower> towerList = getCellInfo();
+                //getWifi();
+                if (towerList.size() > 0) {
+                    //saveTowerInfo(towerList);
+                    for (Tower tower : towerList) {
+                        //Log.d(TAG, new Date() + " \t" + identityLte.getTac() + " \t" + identityLte.getCi());
+                        createIntent(tower.getLac(), tower.getCellId(), tower.getDbm());
+                        if (!tower.equals(lastTower)) {
+                            closePrevTower();
+                            lastTower = tower;
 //                            if (!towers.isExistTower(tower)) {//todo Будет плохо, если опять вернемся в соту, например на обратной дороге.
-                                tower.placeId = place.placeId;
-                                towers.add(tower);
-                                tower.towerId = App.db().collectDao().insert(tower);
-                                Log.d(TAG, "Insert " + tower.toString());
+                            tower.placeId = place.placeId;
+                            towers.add(tower);
+                            tower.towerId = App.db().collectDao().insert(tower);
+                            Log.d(TAG, "Insert " + tower.toString());
 //                            } else {
 //                                Log.d(TAG, "Exist tower");
 //                            }
-                            } else {
-                                lastTower.setEndDate(new Date());
-                                App.db().collectDao().update(lastTower);
-                                Log.d(TAG, "Old tower");
-                            }
+                        } else {
+                            lastTower.setEndDate(new Date());
+                            App.db().collectDao().update(lastTower);
+                            Log.d(TAG, "Old tower");
                         }
-                    } else {
-                        createIntent(0, 0, 0);
-                        closePrevTower();
-                        writeToFile(" - MyService getCellInfo is empty");
                     }
-                    Thread.sleep(SLEEP_MC);
-                } catch (InterruptedException e) {
-                    isWork = false;
-                    writeToFile(" - MyService onDestroy");
+                } else {
+                    createIntent(0, 0, 0);
+                    closePrevTower();
+                    writeToFile(" - MyService getCellInfo is empty");
                 }
-            } while (isWork);
-            stopSelf();
+                Thread.sleep(SLEEP_MC);
+            } catch (Exception e) {
+                writeToFile(" - MyService MyTimerTask Exception:" + e.getStackTrace());
+                Log.e(TAG, e.toString());
+            }
         }
     }
 
@@ -352,6 +350,23 @@ public class MyService extends Service {
             Tower prevTower = towers.getLast();
             prevTower.setEndDate(new Date());
             App.db().collectDao().update(prevTower);
+        }
+    }
+
+    private void startTimer() {
+        if (mTimer != null) {
+            mTimer.cancel();
+        }
+
+        mTimer = new Timer();
+        mMyTimerTask = new MyTimerTask();
+        mTimer.schedule(mMyTimerTask, 0, SLEEP_MC);
+    }
+
+    private void stopTimer() {
+        if (mTimer != null) {
+            mTimer.cancel();
+            mTimer = null;
         }
     }
 }
